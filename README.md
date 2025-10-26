@@ -1,32 +1,32 @@
-# _Sample project_
+# 🥘 Feast-o-Matic
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
-
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+**Feast-o-Matic** é um projeto de firmware desenvolvido usando framework **ESP-IDF**, integrando o **núcleo Arduino-ESP32** como um componente.
 
 
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+## ⚙️ Overview
 
-## Example folder contents
+O Feast-o-Matic é um alimentador automático para animais de estimação, concebido para
+gerir de forma inteligente as refeições, garantindo horários regulares, porções controladas e
+monitorização do consumo.​
 
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
 
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
 
-Below is short explanation of remaining files in the project folder.
+## 🧩 Estrutura do Projeto
 
-```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
-```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+root/ \
+├── main/               # Main application (FreeRTOS tasks, initialization, etc.) \
+│ └── idf_component.yml # Arduino core integrated as an ESP-IDF component \
+├── components/         # Required third-party Arduino libraries \
+└── sdkconfig           # ESP-IDF configuration file
+
+
+
+
+## 🚀 Building the Project
+
+### Requirements
+- [ESP-IDF v5.5.1](https://docs.espressif.com/projects/esp-idf/en/v5.5.1/esp32/get-started/index.html)
+- [Arduino-ESP32 (v3.3.2) as an ESP-IDF component](https://docs.espressif.com/projects/arduino-esp32/en/latest/esp-idf_component.html)
+- [Espressif-IDE](https://docs.espressif.com/projects/espressif-ide/en/latest/downloads.html) or [ESP-IDF Extension for VS Code](https://github.com/espressif/vscode-esp-idf-extension/blob/master/README.md)
+
