@@ -316,7 +316,7 @@ extern "C" void app_main()
         }
 
         display.display();  // Atualiza o conteúdo do display OLED
-        delay(500);  // Aguardar meio segundo antes da próxima leitura
+        vTaskDelay(500 / portTICK_PERIOD_MS);  // Aguardar meio segundo antes da próxima leitura
     }
 
 
