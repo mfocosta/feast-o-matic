@@ -433,6 +433,12 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# Feast-O-Matic Configuration
+#
+CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL="https://192.168.0.3:8070/hello_world.bin"
+# end of Feast-O-Matic Configuration
+
+#
 # Arduino Configuration
 #
 CONFIG_ARDUINO_VARIANT="esp32"
@@ -588,16 +594,16 @@ CONFIG_COMPILER_ORPHAN_SECTIONS_WARNING=y
 #
 
 #
-# Application Level Tracing
+# !!! MINIMAL_BUILD is enabled !!!
 #
-# CONFIG_APPTRACE_DEST_JTAG is not set
-CONFIG_APPTRACE_DEST_NONE=y
-# CONFIG_APPTRACE_DEST_UART1 is not set
-# CONFIG_APPTRACE_DEST_UART2 is not set
-CONFIG_APPTRACE_DEST_UART_NONE=y
-CONFIG_APPTRACE_UART_TASK_PRIO=1
-CONFIG_APPTRACE_LOCK_ENABLE=y
-# end of Application Level Tracing
+
+#
+# Only common components and those transitively required by the main component are listed
+#
+
+#
+# If a component configuration is missing, please add it to the main component's requirements
+#
 
 #
 # Bluetooth
@@ -1091,12 +1097,6 @@ CONFIG_ESP_BROWNOUT_USE_INTR=y
 CONFIG_ESP_SPI_BUS_LOCK_ISR_FUNCS_IN_IRAM=y
 CONFIG_ESP_INTR_IN_IRAM=y
 # end of Hardware Settings
-
-#
-# ESP-Driver:LCD Controller Configurations
-#
-# CONFIG_LCD_ENABLE_DEBUG_LOG is not set
-# end of ESP-Driver:LCD Controller Configurations
 
 #
 # ESP-MM: Memory Management Configurations
@@ -2067,30 +2067,6 @@ CONFIG_WS_BUFFER_SIZE=1024
 # end of TCP Transport
 
 #
-# Ultra Low Power (ULP) Co-processor
-#
-# CONFIG_ULP_COPROC_ENABLED is not set
-
-#
-# ULP Debugging Options
-#
-# end of ULP Debugging Options
-# end of Ultra Low Power (ULP) Co-processor
-
-#
-# Unity unit testing library
-#
-CONFIG_UNITY_ENABLE_FLOAT=y
-CONFIG_UNITY_ENABLE_DOUBLE=y
-# CONFIG_UNITY_ENABLE_64BIT is not set
-# CONFIG_UNITY_ENABLE_COLOR is not set
-CONFIG_UNITY_ENABLE_IDF_TEST_RUNNER=y
-# CONFIG_UNITY_ENABLE_FIXTURE is not set
-# CONFIG_UNITY_ENABLE_BACKTRACE_ON_FAIL is not set
-# CONFIG_UNITY_TEST_ORDER_BY_FILE_PATH_AND_LINE is not set
-# end of Unity unit testing library
-
-#
 # Virtual file system
 #
 CONFIG_VFS_SUPPORT_IO=y
@@ -2224,7 +2200,7 @@ CONFIG_DIAG_ENABLE_VARIABLES=y
 CONFIG_DIAG_VARIABLES_MAX_COUNT=20
 CONFIG_DIAG_ENABLE_NETWORK_VARIABLES=y
 # CONFIG_DIAG_MORE_NETWORK_VARS is not set
-# CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP is not set
+CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP=y
 # end of Diagnostics
 
 #

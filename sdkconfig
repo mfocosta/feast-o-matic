@@ -433,6 +433,12 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# Feast-O-Matic Configuration
+#
+CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL="https://github.com/mfocosta/feast-o-matic/releases/latest/download/feast-o-matic.bin"
+# end of Feast-O-Matic Configuration
+
+#
 # Arduino Configuration
 #
 CONFIG_ARDUINO_VARIANT="esp32"

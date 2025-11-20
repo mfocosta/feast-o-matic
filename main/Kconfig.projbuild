@@ -1,0 +1,10 @@
+menu "Feast-O-Matic Configuration"
+
+    config EXAMPLE_FIRMWARE_UPGRADE_URL
+        string "firmware upgrade url endpoint"
+        default "https://github.com/mfocosta/feast-o-matic/releases/latest/download/feast-o-matic.bin"
+        help
+            URL of server which hosts the firmware
+            image.
+
+endmenu
