@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.5)
 
 set(CONFIG_LOG_WRAP_FUNCTIONS OFF)
 
+set(PROJECT_VER "0.2.0")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+idf_build_set_property(MINIMAL_BUILD ON)
 project(feast-o-matic)
-

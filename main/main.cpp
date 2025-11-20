@@ -1,8 +1,3 @@
-#define BLYNK_TEMPLATE_ID "TMPL5EYqEi5QT"
-#define BLYNK_TEMPLATE_NAME "FeastOMatic"
-#define BLYNK_AUTH_TOKEN "XhE4zGnJPuIG1JD-6dRZ1afRlEBsy8d8"
-
-
 #include <stdio.h>
 #include "Arduino.h"
 #include "HX711.h"
@@ -11,10 +6,15 @@
 #include <Adafruit_SSD1306.h>
 #include <Stepper.h>
 #include <WiFi.h>
-#include <BlynkSimpleEsp32.h>
 #include "DHT.h"
+#include "nvs.h"
+#include "nvs_flash.h"
+#include "esp_ota_ops.h"
 
+/* Project includes */
+#include "ota.h"
 
+static const char *TAG = "main_app";
 
 
 
@@ -55,12 +55,12 @@ const int ledPin = 5;
 
 
 float calibration_factor = -1057;  // Fator de calibração ajustado
-float target_weight = 15.0;        // Peso desejado em gramas (definido pelo app Blynk)
+float target_weight = 15.0;        // Peso desejado em gramas
 float current_weight = 0;          // Peso atual lido
 float previous_weight = 0;         // Armazena o peso anterior para evitar ações repetitivas
 bool manual_motor_control = false; // Flag para controle manual do motor
 
-// Credenciais WiFi e Blynk Auth Token
+// Credenciais WiFi
 char ssid[] = "Leitao_oneplus";        // Substitua com o nome da sua rede WiFi
 char pass[] = "123456789";       // Substitua com a senha da sua rede WiFi
 
@@ -190,11 +190,45 @@ display.display();  // Atualiza o display
 delay(3000);  // Mantém o logotipo visível por 3 segundos
 }
 
-
+static bool diagnostic()
+{
+    return true; /* Currently only a placeholder */
+}
 
 
 extern "C" void app_main()
 {
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    esp_ota_img_states_t ota_state;
+
+    if (esp_ota_get_state_partition(running, &ota_state) == ESP_OK) {
+        if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
+            // run diagnostic function ...
+            bool diagnostic_is_ok = diagnostic();
+            if (diagnostic_is_ok) {
+                ESP_LOGI(TAG, "Diagnostics completed successfully! Continuing execution ...");
+                esp_ota_mark_app_valid_cancel_rollback();
+            } else {
+                ESP_LOGE(TAG, "Diagnostics failed! Start rollback to the previous version ...");
+                esp_ota_mark_app_invalid_rollback_and_reboot();
+            }
+        }
+    }
+    
+    // Initialize NVS.
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        // 1.OTA app partition table has a smaller NVS partition size than the non-OTA
+        // partition table. This size mismatch may cause NVS initialization to fail.
+        // 2.NVS partition contains data in new format and cannot be recognized by this version of code.
+        // If this happens, we erase NVS partition and initialize NVS again.
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(err);
+
+
+
     initArduino();
 
 
@@ -211,9 +245,6 @@ extern "C" void app_main()
     // Exibe o logotipo durante o carregamento
     showLogo();
     
-    // Inicializa Blynk
-    Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
-
     display.clearDisplay();
     display.setTextSize(1.5);
     display.setTextColor(WHITE);
@@ -235,24 +266,21 @@ extern "C" void app_main()
     display.println("Pronto. Coloque a tigela.");
     display.display();
 
+    /**
+     * Start FreeRTOS tasks
+     */
+    xTaskCreate(&ota_task, "ota_task", 12288, NULL, 5, NULL);
+
+    ESP_LOGI(TAG, "Setup done, entering loop");
 
     for(;;) {  // Loop principal
-        Blynk.run();  // Executa o Blynk
-
         // Ler o peso atual da célula de carga
         current_weight = scale.get_units();  
-        
-        // Envia o peso lido para o Blynk (para o Display LCD no app)
-        Blynk.virtualWrite(V0, current_weight);  // Atualiza o valor do Display LCD (V0) no app Blynk
         
         // Exibir o peso atual no monitor serial e no display OLED
         Serial.print("Peso lido: ");
         Serial.print(current_weight, 2);
         Serial.println(" g");
-
-        // Atualiza os dados no Blynk
-        Blynk.virtualWrite(V4, humidade);     // Envia umidade para V4
-        Blynk.virtualWrite(V3, temperatura);  // Envia temperatura para V3
 
         if (displayOption == 0) {
             humidade = dht.readHumidity(); // Lê a umidade
