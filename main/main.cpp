@@ -1,8 +1,3 @@
-#define BLYNK_TEMPLATE_ID "TMPL5EYqEi5QT"
-#define BLYNK_TEMPLATE_NAME "FeastOMatic"
-#define BLYNK_AUTH_TOKEN "XhE4zGnJPuIG1JD-6dRZ1afRlEBsy8d8"
-
-
 #include <stdio.h>
 #include "Arduino.h"
 #include "HX711.h"
@@ -11,7 +6,6 @@
 #include <Adafruit_SSD1306.h>
 #include <Stepper.h>
 #include <WiFi.h>
-#include <BlynkSimpleEsp32.h>
 #include "DHT.h"
 #include "nvs.h"
 #include "nvs_flash.h"
@@ -61,12 +55,12 @@ const int ledPin = 5;
 
 
 float calibration_factor = -1057;  // Fator de calibração ajustado
-float target_weight = 15.0;        // Peso desejado em gramas (definido pelo app Blynk)
+float target_weight = 15.0;        // Peso desejado em gramas
 float current_weight = 0;          // Peso atual lido
 float previous_weight = 0;         // Armazena o peso anterior para evitar ações repetitivas
 bool manual_motor_control = false; // Flag para controle manual do motor
 
-// Credenciais WiFi e Blynk Auth Token
+// Credenciais WiFi
 char ssid[] = "Leitao_oneplus";        // Substitua com o nome da sua rede WiFi
 char pass[] = "123456789";       // Substitua com a senha da sua rede WiFi
 
@@ -251,9 +245,6 @@ extern "C" void app_main()
     // Exibe o logotipo durante o carregamento
     showLogo();
     
-    // Inicializa Blynk
-    Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
-
     display.clearDisplay();
     display.setTextSize(1.5);
     display.setTextColor(WHITE);
@@ -276,27 +267,20 @@ extern "C" void app_main()
     display.display();
 
     /**
-     * Start tasks
+     * Start FreeRTOS tasks
      */
     xTaskCreate(&ota_task, "ota_task", 12288, NULL, 5, NULL);
 
-    for(;;) {  // Loop principal
-        Blynk.run();  // Executa o Blynk
+    ESP_LOGI(TAG, "Setup done, entering loop");
 
+    for(;;) {  // Loop principal
         // Ler o peso atual da célula de carga
         current_weight = scale.get_units();  
-        
-        // Envia o peso lido para o Blynk (para o Display LCD no app)
-        Blynk.virtualWrite(V0, current_weight);  // Atualiza o valor do Display LCD (V0) no app Blynk
         
         // Exibir o peso atual no monitor serial e no display OLED
         Serial.print("Peso lido: ");
         Serial.print(current_weight, 2);
         Serial.println(" g");
-
-        // Atualiza os dados no Blynk
-        Blynk.virtualWrite(V4, humidade);     // Envia umidade para V4
-        Blynk.virtualWrite(V3, temperatura);  // Envia temperatura para V3
 
         if (displayOption == 0) {
             humidade = dht.readHumidity(); // Lê a umidade
