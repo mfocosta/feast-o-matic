@@ -72,28 +72,10 @@ digitalWrite(IN3, LOW);
 digitalWrite(IN4, LOW);
 }
 
-// Função para ativar ou desativar o controle manual do motor
-BLYNK_WRITE(V2) {
-manual_motor_control = param.asInt();  // Lê o valor do botão no Blynk (V2)
-if (manual_motor_control) {
-    Serial.println("Controle manual ativado. Girando motor.");
-    stepper.step(1024);  // Gira o motor em pequenos passos
-} else {
-    Serial.println("Controle manual desativado. Motor parado.");
-    desativarMotor();   // Desativa o motor
-}
-}
 
-BLYNK_WRITE(V1) {
-target_weight = param.asFloat();  // Lê o valor do Slider/Input Box no Blynk e define o novo peso alvo
-}
 
 // Variável para armazenar o estado do botão Blynk
 int displayOption = 0;
-
-BLYNK_WRITE(V5) {
-displayOption = param.asInt(); // 0 ou 1
-}
 
 // Bitmap do logotipo (substitua isso com o seu próprio bitmap)
 const unsigned char myLogo [] = {
