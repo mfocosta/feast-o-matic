@@ -10,6 +10,8 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "esp_ota_ops.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 /* Project includes */
 #include "ota.h"
@@ -209,6 +211,7 @@ extern "C" void app_main()
     }
     ESP_ERROR_CHECK(err);
 
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 
     initArduino();
@@ -217,6 +220,27 @@ extern "C" void app_main()
     Serial.begin(115200);  // Inicia a comunicação serial
     dht.begin();
     pinMode(ledPin, OUTPUT);
+    
+    // Add small delay to allow esp_event_loop to initialize properly
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    
+    // Initialize WiFi before OTA task
+    ESP_LOGI(TAG, "Connecting to WiFi: %s", ssid);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, pass);
+    
+    int wifi_attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && wifi_attempts < 20) {
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        wifi_attempts++;
+        Serial.print(".");
+    }
+    
+    if (WiFi.status() == WL_CONNECTED) {
+        ESP_LOGI(TAG, "WiFi connected. IP: %s", WiFi.localIP().toString().c_str());
+    } else {
+        ESP_LOGW(TAG, "WiFi connection failed after %d attempts", wifi_attempts);
+    }
     
     // Inicializar o display OLED
     if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {  // Endereço I2C 0x3C para o display OLED
@@ -251,11 +275,15 @@ extern "C" void app_main()
     /**
      * Start FreeRTOS tasks
      */
-    xTaskCreate(&ota_task, "ota_task", 12288, NULL, 5, NULL);
+    xTaskCreate(&ota_task, "ota_task", 12288, NULL, tskIDLE_PRIORITY + 1, NULL);
 
     ESP_LOGI(TAG, "Setup done, entering loop");
 
     for(;;) {  // Loop principal
+        // Only execute main loop if OTA is not running
+        if (xSemaphoreTake(ota_semaphore, 0) == pdTRUE) {
+            xSemaphoreGive(ota_semaphore);  // Immediately release
+            
         // Ler o peso atual da célula de carga
         current_weight = scale.get_units();  
         
@@ -326,6 +354,10 @@ extern "C" void app_main()
         }
 
         display.display();  // Atualiza o conteúdo do display OLED
+} else {
+            // OTA is running, skip main operations and sleep
+            ESP_LOGD(TAG, "OTA in progress, main loop sleeping");
+        }
         vTaskDelay(500 / portTICK_PERIOD_MS);  // Aguardar meio segundo antes da próxima leitura
     }
 
