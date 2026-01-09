@@ -15,6 +15,7 @@
 
 /* Project includes */
 #include "ota.h"
+#include "mqtt.h"
 
 static const char *TAG = "main_app";
 
@@ -277,6 +278,8 @@ extern "C" void app_main()
      */
     xTaskCreate(&ota_task, "ota_task", 12288, NULL, tskIDLE_PRIORITY + 1, NULL);
 
+    mqtt_app_start();
+
     ESP_LOGI(TAG, "Setup done, entering loop");
 
     for(;;) {  // Loop principal
@@ -295,7 +298,12 @@ extern "C" void app_main()
         if (displayOption == 0) {
             humidade = dht.readHumidity(); // Lê a umidade
             temperatura = dht.readTemperature(); // Lê a temperatura em Celsius
-            
+            if (mqtt_client != NULL) {
+                char temp_buffer[50];
+                snprintf(temp_buffer, sizeof(temp_buffer), "%.1f", temperatura);
+                esp_mqtt_client_publish(mqtt_client, "test", temp_buffer, 0, 0, 0);
+            }
+
             // Mostra os dados no OLED
         if (isnan(temperatura) || isnan(humidade)) {
             display.println("Erro ao ler DHT11");
