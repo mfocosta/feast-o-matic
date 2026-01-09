@@ -2,6 +2,10 @@
 .vscode
 .clangd
 
+# Build configuration files (contain local secrets and settings)
+sdkconfig
+sdkconfig.old
+
 .pytest_cache/
 __pycache__/
 

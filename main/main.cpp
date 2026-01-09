@@ -63,9 +63,9 @@ float current_weight = 0;          // Peso atual lido
 float previous_weight = 0;         // Armazena o peso anterior para evitar ações repetitivas
 bool manual_motor_control = false; // Flag para controle manual do motor
 
-// Credenciais WiFi
-char ssid[] = "Leitao_oneplus";        // Substitua com o nome da sua rede WiFi
-char pass[] = "123456789";       // Substitua com a senha da sua rede WiFi
+// Credenciais WiFi (configuradas via menuconfig)
+char ssid[] = CONFIG_WIFI_SSID;
+char pass[] = CONFIG_WIFI_PASSWORD;
 
 // Função para desativar as bobinas do motor de passo
 void desativarMotor() {

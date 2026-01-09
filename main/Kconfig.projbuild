@@ -1,5 +1,17 @@
 menu "Feast-O-Matic Configuration"
 
+    config WIFI_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            SSID (network name) of the WiFi network to connect to.
+
+    config WIFI_PASSWORD
+        string "WiFi Password"
+        default ""
+        help
+            Password for the WiFi network.
+
     config EXAMPLE_FIRMWARE_UPGRADE_URL
         string "firmware upgrade url endpoint"
         default "https://github.com/mfocosta/feast-o-matic/releases/latest/download/feast-o-matic.bin"
