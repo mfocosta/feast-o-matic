@@ -1,5 +1,5 @@
 idf_component_register(SRCS "ota/ota.c" "main.cpp" "mqtt/mqtt.c"
                     INCLUDE_DIRS "." "ota/." "mqtt/."
-                    PRIV_REQUIRES app_update esp_https_ota nvs_flash
+                    PRIV_REQUIRES app_update esp_https_ota nvs_flash wifi_provisioning esp_wifi
 
                     REQUIRES HX711 Adafruit_GFX Adafruit_SSD1306 Stepper DHT)

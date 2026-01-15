@@ -19,4 +19,16 @@ menu "Feast-O-Matic Configuration"
             URL of server which hosts the firmware
             image.
 
+    config 28BYJ48_STEPS_PER_REV
+        int "28BYJ48 Steps Per Revolution"
+        default 2048
+        help
+            Number of steps per revolution for the 28BYJ48 stepper motor.
+
+    config HX711_CALIBRATION_FACTOR
+        int "HX711 Calibration Factor"
+        default -1057
+        help
+            Calibration factor for the HX711 load cell amplifier.
+
 endmenu
