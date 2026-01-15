@@ -2,77 +2,70 @@
 #include "Arduino.h"
 #include "HX711.h"
 #include <Wire.h>
-#include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
 #include <Stepper.h>
-#include <WiFi.h>
 #include "DHT.h"
-#include "nvs.h"
-#include "nvs_flash.h"
-#include "esp_ota_ops.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "driver/gpio.h"
 
 /* Project includes */
 #include "ota.h"
 #include "mqtt.h"
-#include "system.h"
+#include "init.h"
+#include "wifi.h"
+#include "pins.h"
+#include "dht_handler.h"
+#include "display.h"
+#include "scale.h"
+#include "motor.h"
 
 static const char *TAG = "main_app";
 
 
-// Credenciais WiFi (configuradas via menuconfig)
-char ssid[] = CONFIG_WIFI_SSID;
-char pass[] = CONFIG_WIFI_PASSWORD;
+bool verifyOta() {
+    return true; /* Placeholder for OTA verification logic */
+}
+
+void configurePins() {
+    /* OUTPUT */
+    gpio_config_t io_conf = {};
+    io_conf.intr_type     = GPIO_INTR_DISABLE;
+    io_conf.mode          = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask  = GPIO_OUTPUT_PIN_SEL;
+    io_conf.pull_down_en  = GPIO_PULLDOWN_DISABLE;
+    io_conf.pull_up_en    = GPIO_PULLUP_DISABLE;
+    gpio_config(&io_conf);
+
+}
 
 extern "C" void app_main()
 {
-    /* Check if OTA update is pending verification */
-    ota_verification_check();
-    
+
     /* Initialize system components */
     initialize_system();
 
+    /** 
+     * Initializes Arduino framework
+     * Calls nvs_flash_init()
+     * Performs OTA verification if needed
+     */
+    initArduino(); 
 
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    initialize_wifi();
 
+    configurePins();
 
-    initArduino();
-
-
-    Serial.begin(115200);  // Inicia a comunicação serial
     dht.begin();
-    pinMode(ledPin, OUTPUT);
-    
-    // Add small delay to allow esp_event_loop to initialize properly
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-    
-    // Initialize WiFi before OTA task
-    ESP_LOGI(TAG, "Connecting to WiFi: %s", ssid);
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, pass);
-    
-    int wifi_attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && wifi_attempts < 20) {
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-        wifi_attempts++;
-        Serial.print(".");
-    }
-    
-    if (WiFi.status() == WL_CONNECTED) {
-        ESP_LOGI(TAG, "WiFi connected. IP: %s", WiFi.localIP().toString().c_str());
-    } else {
-        ESP_LOGW(TAG, "WiFi connection failed after %d attempts", wifi_attempts);
-    }
-    
+
     // Inicializar o display OLED
     if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {  // Endereço I2C 0x3C para o display OLED
-        Serial.println(F("Falha ao inicializar o display OLED"));
-        for(;;);
+        ESP_LOGI(TAG, "Failed to initialize OLED display");
     }
 
     // Exibe o logotipo durante o carregamento
-    showLogo();
+    display_show_feast_logo();
     
     display.clearDisplay();
     display.setTextSize(1.5);
@@ -83,7 +76,7 @@ extern "C" void app_main()
 
     // Iniciar a célula de carga
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-    scale.set_scale(calibration_factor);
+    scale.set_scale(CONFIG_HX711_CALIBRATION_FACTOR);
     scale.tare();  // Zera a balança com a tigela vazia
 
     // Configurar a velocidade do motor de passo
@@ -117,8 +110,8 @@ extern "C" void app_main()
         Serial.print(current_weight, 2);
         Serial.println(" g");
 
-        if (displayOption == 0) {
-            humidade = dht.readHumidity(); // Lê a umidade
+        if (true) {
+            humidade = dht.readHumidity(); // Lê a humidade
             temperatura = dht.readTemperature(); // Lê a temperatura em Celsius
             if (mqtt_client != NULL) {
                 char temp_buffer[50];
@@ -152,22 +145,10 @@ extern "C" void app_main()
         }
 
         // Controle automático baseado no peso
-        if (!manual_motor_control) {  // Verifica se o controle manual está desativado
-            if (current_weight < target_weight) {
+        if (current_weight < target_weight) {
             if (previous_weight != current_weight) {  // Executa apenas se o peso mudou
-                for(int dutyCycle = 0; dutyCycle <= 255; dutyCycle++){   
-                // changing the LED brightness with PWM
-                analogWrite(ledPin, dutyCycle);
+                gpio_set_level(LEDPIN, 1);
                 
-                }
-
-                // decrease the LED brightness
-                for(int dutyCycle = 255; dutyCycle >= 0; dutyCycle--){
-                // changing the LED brightness with PWM
-                analogWrite(ledPin, dutyCycle);
-                
-                }
-
                 stepper.step(-2048);  // Gira o motor para dispensar comida
                 stepper.step(256);    // Ajusta o motor de volta
                 previous_weight = current_weight;  // Atualiza o peso anterior
@@ -179,9 +160,9 @@ extern "C" void app_main()
             display.setCursor(0, 40);
             //display.println("Peso alvo atingido.");
             Serial.println("Peso alvo atingido! Motor parado.");
-            desativarMotor();   // Desativa o motor após atingir o peso alvo
+            disableMotor();   // Desativa o motor após atingir o peso alvo
+            gpio_set_level(LEDPIN, 0);
             }
-        }
 
         display.display();  // Atualiza o conteúdo do display OLED
 } else {

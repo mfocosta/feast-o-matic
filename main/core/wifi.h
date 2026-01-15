@@ -1,15 +1,14 @@
-#ifndef DHT_H
-#define DHT_H
+#ifndef WIFI_H
+#define WIFI_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-
+void initialize_wifi();
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // DHT_H
+#endif // WIFI_H

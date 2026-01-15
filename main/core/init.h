@@ -1,5 +1,5 @@
-#ifndef SYSTEM_H
-#define SYSTEM_H
+#ifndef INIT_H
+#define INIT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,4 +11,4 @@ void initialize_system();
 }
 #endif
 
-#endif // SYSTEM_H
+#endif // INIT_H

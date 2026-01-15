@@ -1,18 +1,24 @@
 menu "Feast-O-Matic Configuration"
 
     config WIFI_SSID
-        string "WiFi SSID"
-        default ""
+        string "SoftAP SSID"
+        default "feastomatic"
         help
-            SSID (network name) of the WiFi network to connect to.
+            SSID (network name) to set up the softAP with.
 
     config WIFI_PASSWORD
-        string "WiFi Password"
-        default ""
+        string "SoftAP Password"
+        default "feastomatic"
         help
-            Password for the WiFi network.
+            WiFi password (WPA or WPA2) for the example to use for the softAP.
 
-    config EXAMPLE_FIRMWARE_UPGRADE_URL
+    config WIFI_MAX_STA_CONN
+        int "Maximum STA connections"
+        default 1
+        help
+            Max number of the STA connects to AP.
+
+    config FIRMWARE_UPGRADE_URL
         string "firmware upgrade url endpoint"
         default "https://github.com/mfocosta/feast-o-matic/releases/latest/download/feast-o-matic.bin"
         help

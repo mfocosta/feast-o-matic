@@ -54,7 +54,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-static esp_err_t diagnostic(s)
+static esp_err_t diagnostics()
 {
     return ESP_OK; /* Currently only a placeholder */
 }
@@ -118,7 +118,7 @@ void ota_task(void *pvParameter)
             .buffer_size       = 2048,
             .buffer_size_tx    = 1024,
             .timeout_ms        = 600000, /* max 10 minutes for firmware download */
-            .url               = CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL,
+            .url               = CONFIG_FIRMWARE_UPGRADE_URL,
             .crt_bundle_attach = esp_crt_bundle_attach,
             .event_handler     = _http_event_handler,
             .keep_alive_enable = true,
