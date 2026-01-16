@@ -10,7 +10,6 @@ extern "C" {
 
 extern SemaphoreHandle_t ota_semaphore;
 
-void ota_verification_check();
 void ota_task(void *pvParameter);
 
 #ifdef __cplusplus

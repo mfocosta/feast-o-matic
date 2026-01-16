@@ -26,6 +26,8 @@ void display_init(void) {
 
 /* Function to draw the full screen with a given bitmap */
 void display_show_feast_logo(void) {
+    if (!isDisplayAvailable) return;
+    
     display.clearDisplay(); 
     display.drawBitmap(0, 0, feastLogo, 128, 64, WHITE);
     display.display();
