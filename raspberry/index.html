@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controlo Alimentador</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        h1 { color: #333; }
+        .status-box { margin: 20px 0; padding: 15px; background: #e0e7ff; border-radius: 5px; }
+        button { background-color: #4CAF50; color: white; padding: 15px 32px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s;}
+        button:hover { background-color: #45a049; }
+        button:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>🐶 Alimentador Smart</h1>
+        
+        <div class="status-box">
+            <p>Estado atual:</p>
+            <h2 id="display-estado">A aguardar dados...</h2>
+        </div>
+
+        <button onclick="alimentar()">🍖 Libertar Comida</button>
+    </div>
+
+    <script>
+        // Conectar ao servidor Flask via SocketIO
+        const socket = io();
+
+        // 1. Receber dados do ESP32 (via Python)
+        socket.on('atualizacao_sensor', function(msg) {
+            console.log("Dados recebidos: " + msg.dados);
+            // Atualiza o texto na página
+            document.getElementById('display-estado').innerText = msg.dados;
+        });
+
+        // 2. Enviar comando para o ESP32 (via Python)
+        function alimentar() {
+            console.log("Enviando comando...");
+            socket.emit('comando_alimentar', { acao: 'alimentar', quantidade: 1 });
+            // Feedback visual imediato opcional
+            document.getElementById('display-estado').innerText = "Comando enviado...";
+        }
+    </script>
+</body>
+</html>
