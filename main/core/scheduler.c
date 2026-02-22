@@ -80,6 +80,12 @@ void scheduler_task(void *pvParameter)
         int sched   = g_sched_hour * 60 + g_sched_minute;
 
         if (current == sched && last_triggered != current) {
+            if (xEventGroupGetBits(system_event_group) & OTA_IN_PROGRESS_BIT) {
+                ESP_LOGW(TAG, "OTA in progress, deferring scheduled feed");
+                /* Don't set last_triggered so it retries on the next 30 s tick */
+                continue;
+            }
+
             ESP_LOGI(TAG, "Scheduled feed at %02d:%02d (%d g)",
                      g_sched_hour, g_sched_minute, g_sched_grams);
             last_triggered = current;

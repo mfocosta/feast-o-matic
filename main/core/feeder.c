@@ -39,6 +39,11 @@ void feeder_task(void *pvParameter)
         switch (item.type) {
 
         case CMD_FEED_NOW: {
+            if (xEventGroupGetBits(system_event_group) & OTA_IN_PROGRESS_BIT) {
+                ESP_LOGW(TAG, "OTA in progress, ignoring feed command");
+                break;
+            }
+
             int target_grams = item.data.grams;
             ESP_LOGI(TAG, "Feed command: %d g", target_grams);
 

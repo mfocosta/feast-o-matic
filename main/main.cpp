@@ -49,9 +49,11 @@ static void sensor_task(void *pvParameter)
             esp_mqtt_client_publish(mqtt_client, "feeder/temp", buf, 0, 0, 0);
         }
 
-        if (xSemaphoreTake(display_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-            display_show_status(current_weight, temperatura, humidade);
-            xSemaphoreGive(display_mutex);
+        if (!(xEventGroupGetBits(system_event_group) & OTA_IN_PROGRESS_BIT)) {
+            if (xSemaphoreTake(display_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+                display_show_status(current_weight, temperatura, humidade);
+                xSemaphoreGive(display_mutex);
+            }
         }
     }
 }

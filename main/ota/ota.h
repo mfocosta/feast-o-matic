@@ -2,15 +2,13 @@
 #define OTA_H
 
 #include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 #include "freertos/task.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern SemaphoreHandle_t ota_semaphore;
-extern TaskHandle_t      ota_task_handle;
+extern TaskHandle_t ota_task_handle;
 
 /* Trigger an immediate OTA check from any context */
 void ota_trigger_check(void);
