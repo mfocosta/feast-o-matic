@@ -61,12 +61,12 @@
         margin-bottom: 20px;
       }
     </style>
-    <title>ESP Captive Portal</title>
+    <title>Feast-O-Matic Setup</title>
   </head>
   <body>
     <div class="container">
-      <h1>ESP Captive Portal</h1>
-      <p class="info">Please enter your WiFi credentials to connect</p>
+      <h1>Feast-O-Matic</h1>
+      <p class="info">Enter your WiFi credentials. Optionally set the MQTT broker.</p>
       <form action="/connect" method="post">
         <div class="form-group">
           <label for="ssid">WiFi SSID:</label>
@@ -75,6 +75,11 @@
         <div class="form-group">
           <label for="password">Password:</label>
           <input type="password" id="password" name="password" maxlength="64">
+        </div>
+        <div class="form-group">
+          <label for="mqtt_broker">MQTT Broker URL (optional):</label>
+          <input type="text" id="mqtt_broker" name="mqtt_broker" maxlength="127"
+                 placeholder="mqtt://192.168.1.1:1883">
         </div>
         <input type="submit" value="Connect">
       </form>

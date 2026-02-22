@@ -24,11 +24,10 @@ extern "C" {
 #define LOADCELL_SCK_PIN   GPIO_NUM_26
 
 /* ULN2003 Stepper Motor Driver */
-#define IN1  GPIO_NUM_14
-#define IN2  GPIO_NUM_12
-#define IN3  GPIO_NUM_13
-#define IN4  GPIO_NUM_33
-
+#define STEPPER_IN1  GPIO_NUM_14
+#define STEPPER_IN2  GPIO_NUM_12
+#define STEPPER_IN3  GPIO_NUM_13
+#define STEPPER_IN4  GPIO_NUM_33
 
 #ifdef __cplusplus
 }

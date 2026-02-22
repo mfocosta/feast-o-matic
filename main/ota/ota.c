@@ -21,7 +21,16 @@
 
 static const char *TAG = "ota_handler";
 
-SemaphoreHandle_t ota_semaphore = NULL;
+SemaphoreHandle_t ota_semaphore   = NULL;
+TaskHandle_t      ota_task_handle = NULL;
+
+void ota_trigger_check(void)
+{
+    if (ota_task_handle != NULL) {
+        xTaskNotifyGive(ota_task_handle);
+        ESP_LOGI(TAG, "OTA check triggered via MQTT");
+    }
+}
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
@@ -67,11 +76,13 @@ void ota_task(void *pvParameter)
         xSemaphoreGive(ota_semaphore);
     }
 
-    while (1) {
-        // Wait a bit before checking for updates (5 minutes)
-        vTaskDelay(300000 / portTICK_PERIOD_MS);
+    ota_task_handle = xTaskGetCurrentTaskHandle();
 
-        ESP_LOGI(TAG, "Starting OTA task");
+    while (1) {
+        /* Wait up to 5 minutes, or wake immediately if notified via MQTT */
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(300000));
+
+        ESP_LOGI(TAG, "Starting OTA check");
 
         // Check if we have an IP address (indicates WiFi is connected)
         esp_netif_ip_info_t ip_info;
@@ -111,7 +122,7 @@ void ota_task(void *pvParameter)
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "esp_https_ota_begin failed: %s", esp_err_to_name(ret));
             xSemaphoreGive(ota_semaphore);
-            vTaskDelay(300000 / portTICK_PERIOD_MS);
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(300000));
             continue;
         }
 
@@ -125,7 +136,7 @@ void ota_task(void *pvParameter)
             ESP_LOGE(TAG, "esp_https_ota_get_img_desc failed: %s", esp_err_to_name(ret));
             esp_https_ota_abort(https_ota_handle);
             xSemaphoreGive(ota_semaphore);
-            vTaskDelay(300000 / portTICK_PERIOD_MS);
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(300000));
             continue;
         }
 
@@ -145,7 +156,7 @@ void ota_task(void *pvParameter)
                 ESP_LOGI(TAG, "Firmware version is the same, skipping OTA update");
                 esp_https_ota_abort(https_ota_handle);
                 xSemaphoreGive(ota_semaphore);
-                vTaskDelay(300000 / portTICK_PERIOD_MS);
+                ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(300000));
                 continue;
             }
             
@@ -178,6 +189,6 @@ void ota_task(void *pvParameter)
             xSemaphoreGive(ota_semaphore);
         }
 
-        vTaskDelay(300000 / portTICK_PERIOD_MS);
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(300000));
     }
 }

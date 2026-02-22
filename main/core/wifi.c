@@ -16,18 +16,16 @@
 #include "esp_http_server.h"
 #include "dns_server.h"
 
+#include "events.h"
+#include "init.h"
+
 
 extern const char root_start[] asm("_binary_captive_html_start");
 extern const char root_end[] asm("_binary_captive_html_end");
 
 static const char *TAG = "wifi_handler";
 
-
-#define WIFI_CONNECTED_BIT  BIT0
-#define WIFI_FAIL_BIT       BIT1
-
 static httpd_handle_t server = NULL;
-static EventGroupHandle_t s_wifi_event_group;
 static dns_server_handle_t dns_handle = NULL;
 
 typedef struct {
@@ -61,12 +59,12 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         ESP_LOGI(TAG, "Disconnected from AP, retrying...");
+        xEventGroupClearBits(system_event_group, WIFI_CONNECTED_BIT);
         esp_wifi_connect();
-        xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
-        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+        xEventGroupSetBits(system_event_group, WIFI_CONNECTED_BIT);
     }
 }
 
@@ -226,12 +224,11 @@ static void url_decode(char *dst, const char *src) {
     *dst++ = '\0';
 }
 
-// HTTP POST Handler for WiFi credentials
 static esp_err_t connect_post_handler(httpd_req_t *req)
 {
-    char buf[200];
+    char buf[300];
     int ret, remaining = req->content_len;
-    
+
     if (remaining >= sizeof(buf)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Content too long");
         return ESP_FAIL;
@@ -239,56 +236,55 @@ static esp_err_t connect_post_handler(httpd_req_t *req)
 
     ret = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)));
     if (ret <= 0) {
-        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-            httpd_resp_send_408(req);
-        }
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) httpd_resp_send_408(req);
         return ESP_FAIL;
     }
     buf[ret] = '\0';
 
-    // Parse SSID and password from form data
-    char ssid[33] = {0};
-    char password[65] = {0};
-    char *ssid_param = strstr(buf, "ssid=");
-    char *pass_param = strstr(buf, "password=");
+    /* Parse form fields */
+    char ssid[33]       = {0};
+    char password[65]   = {0};
+    char broker[128]    = {0};
 
-    if (ssid_param) {
-        ssid_param += 5; // skip "ssid="
-        char *end = strchr(ssid_param, '&');
-        if (end) *end = '\0';
-        url_decode(ssid, ssid_param);
+    char *p;
+    if ((p = strstr(buf, "ssid="))) {
+        p += 5;
+        char *end = strchr(p, '&'); if (end) *end = '\0';
+        url_decode(ssid, p);
+        if (end) *end = '&';
+    }
+    if ((p = strstr(buf, "password="))) {
+        p += 9;
+        char *end = strchr(p, '&'); if (end) *end = '\0';
+        url_decode(password, p);
+        if (end) *end = '&';
+    }
+    if ((p = strstr(buf, "mqtt_broker="))) {
+        p += 12;
+        char *end = strchr(p, '&'); if (end) *end = '\0';
+        url_decode(broker, p);
+        if (end) *end = '&';
     }
 
-    if (pass_param) {
-        pass_param += 9; // skip "password="
-        char *end = strchr(pass_param, '&');
-        if (end) *end = '\0';
-        url_decode(password, pass_param);
+    ESP_LOGI(TAG, "SSID: %s  Broker: %s", ssid, broker);
+
+    /* Persist broker URL before switching WiFi */
+    if (strlen(broker) > 0) {
+        nvs_save_broker(broker);
     }
 
-    ESP_LOGI(TAG, "Received SSID: %s", ssid);
-    ESP_LOGI(TAG, "Received Password: %s", password);
-
-    // Allocate memory for credentials to pass to task
     wifi_credentials_t *creds = malloc(sizeof(wifi_credentials_t));
-    if (creds == NULL) {
-        ESP_LOGE(TAG, "Failed to allocate memory for credentials");
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
+    if (!creds) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OOM");
         return ESP_FAIL;
     }
-    
-    strlcpy(creds->ssid, ssid, sizeof(creds->ssid));
+    strlcpy(creds->ssid,     ssid,     sizeof(creds->ssid));
     strlcpy(creds->password, password, sizeof(creds->password));
 
-    // Send response
-    const char* resp = "<html><body><h1>Connecting...</h1><p>Device is switching to station mode and will connect to your WiFi network.</p></body></html>";
+    const char *resp = "<html><body><h1>A conectar...</h1><p>O dispositivo vai ligar à sua rede WiFi.</p></body></html>";
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
 
-    ESP_LOGI(TAG, "Creating WiFi switch task...");
-    
-    // Create task to handle WiFi switching asynchronously
     xTaskCreate(wifi_switch_task, "wifi_switch", 4096, creds, tskIDLE_PRIORITY + 5, NULL);
-
     return ESP_OK;
 }
 
@@ -409,9 +405,6 @@ void initialize_wifi(void)
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    // Create event group for WiFi events
-    s_wifi_event_group = xEventGroupCreate();
 
     // Register event handlers for WiFi station events
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));

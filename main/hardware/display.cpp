@@ -11,7 +11,7 @@ extern const uint8_t feastLogo[];
 #define OLED_RESET    -1  /* Not used */
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-bool isDisplayAvailable = false;
+static bool isDisplayAvailable = false;
 
 void display_init(void) {
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -76,9 +76,43 @@ void display_show_error(const char* message) {
     display.println(message);
 }
 
+void display_show_dispensing(int target_grams) {
+    if (!isDisplayAvailable) return;
+
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.println("Dispensando...");
+    display.print("Alvo: ");
+    display.print(target_grams);
+    display.println(" g");
+    display.display();
+}
+
+void display_show_status(float weight, float temp, float humidity) {
+    if (!isDisplayAvailable) return;
+
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.print("Peso: ");
+    display.print(weight, 1);
+    display.println(" g");
+    if (temp != 0 || humidity != 0) {
+        display.print("Temp: ");
+        display.print(temp, 1);
+        display.print("C  Hum: ");
+        display.print(humidity, 0);
+        display.println("%");
+    }
+    display.display();
+}
+
 void display_clear(void) {
     if (!isDisplayAvailable) return;
-    
+
     display.clearDisplay();
 }
 

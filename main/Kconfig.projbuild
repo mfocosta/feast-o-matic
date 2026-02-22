@@ -25,6 +25,13 @@ menu "Feast-O-Matic Configuration"
             URL of server which hosts the firmware
             image.
 
+    config MQTT_BROKER_URL
+        string "Default MQTT broker URL"
+        default "mqtt://192.168.1.156:1883"
+        help
+            Default MQTT broker URL used on first boot.
+            Can be overridden via the captive portal or updated at runtime.
+
     config 28BYJ48_STEPS_PER_REV
         int "28BYJ48 Steps Per Revolution"
         default 2048
