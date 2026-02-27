@@ -24,29 +24,37 @@ static const char *TAG = "scheduler";
 static void sntp_sync(void)
 {
     ESP_LOGI(TAG, "Initialising SNTP...");
+    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_SNTP_TIME_SERVER);
+    config.smooth_sync = true;
+    esp_netif_sntp_init(&config);
+
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org");
     esp_sntp_init();
 
     /* Wait up to 30 s for the first sync */
-    int retries = 0;
-    while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && retries < 30) {
-        ESP_LOGD(TAG, "Waiting for NTP sync... (%d/30)", retries + 1);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        retries++;
-    }
 
-    if (sntp_get_sync_status() != SNTP_SYNC_STATUS_RESET) {
-        time_t now;
-        struct tm t;
-        time(&now);
-        localtime_r(&now, &t);
-        ESP_LOGI(TAG, "Time synced: %04d-%02d-%02d %02d:%02d",
-                 t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
-                 t.tm_hour, t.tm_min);
-    } else {
-        ESP_LOGW(TAG, "NTP sync timed out – will retry on next wake");
+    time_t now = 0;
+    struct tm timeinfo = { 0 };
+    int retry = 0;
+    const int retry_count = 15;
+    while (esp_netif_sntp_sync_wait(2000 / portTICK_PERIOD_MS) == ESP_ERR_TIMEOUT && ++retry < retry_count) {
+        ESP_LOGI(TAG, "Waiting for system time to be set... (%d/%d)", retry, retry_count);
     }
+    time(&now);
+
+    char strftime_buf[64];
+
+    setenv("TZ", "WET0WEST,M3.5.0/1,M10.5.0", 1);
+    tzset();
+
+    localtime_r(&now, &timeinfo);
+    strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+    ESP_LOGI(TAG, "The current date/time in Lisbon is: %s", strftime_buf);
+
+    ESP_LOGI(TAG, "Time synced: %04d-%02d-%02d %02d:%02d",
+            timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+            timeinfo.tm_hour, timeinfo.tm_min);
 }
 
 void scheduler_task(void *pvParameter)

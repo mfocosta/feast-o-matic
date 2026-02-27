@@ -284,7 +284,7 @@ static esp_err_t connect_post_handler(httpd_req_t *req)
     const char *resp = "<html><body><h1>A conectar...</h1><p>O dispositivo vai ligar à sua rede WiFi.</p></body></html>";
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
 
-    xTaskCreate(wifi_switch_task, "wifi_switch", 4096, creds, tskIDLE_PRIORITY + 5, NULL);
+    xTaskCreate(wifi_switch_task, "wifi_switch", 4096, creds, tskIDLE_PRIORITY + 4, NULL);
     return ESP_OK;
 }
 

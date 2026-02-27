@@ -105,10 +105,10 @@ extern "C" void app_main(void)
     /* 7. FreeRTOS tasks
      *   Priority: feeder (5) > sensor (3) > scheduler (2) > ota (1)
      */
-    xTaskCreate(feeder_task,    "feeder",    4096,  NULL, 5, NULL);
-    xTaskCreate(sensor_task,    "sensor",    4096,  NULL, 3, NULL);
-    xTaskCreate(scheduler_task, "scheduler", 4096,  NULL, 2, NULL);
-    xTaskCreate(ota_task,       "ota",       12288, NULL, 1, NULL);
+    xTaskCreate(feeder_task,    "feeder",    4096,  NULL, tskIDLE_PRIORITY + 5, NULL);
+    xTaskCreate(sensor_task,    "sensor",    4096,  NULL, tskIDLE_PRIORITY + 3, NULL);
+    xTaskCreate(scheduler_task, "scheduler", 4096,  NULL, tskIDLE_PRIORITY + 2, NULL);
+    xTaskCreate(ota_task,       "ota",       12288, NULL, tskIDLE_PRIORITY + 1, NULL);
 
     /* 8. MQTT client (runs in its own internal task) */
     mqtt_app_start();
