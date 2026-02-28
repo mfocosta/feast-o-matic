@@ -14,6 +14,7 @@
 #include "esp_sntp.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_netif_sntp.h"
 
 #include "events.h"
 #include "init.h"
@@ -24,16 +25,11 @@ static const char *TAG = "scheduler";
 static void sntp_sync(void)
 {
     ESP_LOGI(TAG, "Initialising SNTP...");
-    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_SNTP_TIME_SERVER);
+    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
     config.smooth_sync = true;
     esp_netif_sntp_init(&config);
 
-    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    esp_sntp_setservername(0, "pool.ntp.org");
-    esp_sntp_init();
-
     /* Wait up to 30 s for the first sync */
-
     time_t now = 0;
     struct tm timeinfo = { 0 };
     int retry = 0;

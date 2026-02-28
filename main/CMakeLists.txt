@@ -1,5 +1,5 @@
 idf_component_register(SRCS "main.cpp"
-                            "core/init.c" "core/wifi.c" "core/feeder.c" "core/scheduler.c"
+                            "core/init.c" "core/wifi.c" "core/feeder.cpp" "core/scheduler.c"
                             "hardware/dht_handler.cpp" "hardware/display.cpp" "hardware/motor.cpp" "hardware/scale.cpp"
                             "mqtt/mqtt.c"
                             "ota/ota.c"
