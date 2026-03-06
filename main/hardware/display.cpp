@@ -3,11 +3,9 @@
 #include "freertos/queue.h"
 #include "display.h"
 #include "events.h"
+#include <bitmaps.h>
 
 static const char *TAG = "display_handler";
-
-/* Forward declaration of feastLogo bitmap */
-extern const uint8_t feastLogo[];
 
 #define SCREEN_WIDTH  128  
 #define SCREEN_HEIGHT 64  
@@ -53,8 +51,7 @@ void desenharInterfaceFixa() {
   display.display();
 }
 
-void display_show_status(float bowl_weight, float temp, float hum, float reservoir_level) {
-  desenharInterfaceFixa();  
+void display_show_status(int bowl_weight, float temp, int hum, int reservoir_level) {
   display.fillRect(5, 30, 55, 20, SSD1306_BLACK);   
   display.fillRect(75, 30, 50, 20, SSD1306_BLACK);  
   display.fillRect(0, 55, 128, 9, SSD1306_BLACK);   
@@ -76,6 +73,7 @@ void display_show_status(float bowl_weight, float temp, float hum, float reservo
   display.display();
 }
 
+/*
 // ================= LOOP =================
 void loop() {
   // 1. Simulação de Sensores
@@ -89,9 +87,9 @@ void loop() {
   if (menuPage == 0) {
     display_show_status();
   }
-}
+}*/
 
-void verificarBotoes() {
+/*void verificarBotoes() {
   bool readingNext = digitalRead(BTN_NEXT);
   bool readingPrev = digitalRead(BTN_PREV);
 
@@ -127,7 +125,7 @@ void verificarBotoes() {
     }
   }
   lastReadPrev = readingPrev;
-}
+}*/
 
 void mudarPagina() {
   display.clearDisplay();
@@ -145,7 +143,7 @@ void mudarPagina() {
 
 void display_show_feast_logo(void) {
     display.clearDisplay(); 
-    display.drawBitmap(0, 0, feastLogo, 128, 64, WHITE);
+    display.drawBitmap(0, 0, feastLogoUpgraded, 128, 64, WHITE);
     display.display();
 }
 
@@ -170,21 +168,23 @@ void display_task(void *pvParameter)
     display_show_feast_logo();
     vTaskDelay(pdMS_TO_TICKS(5000));
 
+    desenharInterfaceFixa();  
+
     for (;;) {
         if (xQueueReceive(display_queue, &msg, portMAX_DELAY) != pdTRUE) continue;
 
         switch (msg.type) {
         case DISPLAY_MSG_STATUS:
-            display_show_status(msg.data.status.weight,
+            display_show_status((int)msg.data.status.weight,
                                 msg.data.status.temp,
-                                msg.data.status.hum,
+                                (int)msg.data.status.hum,
                                 80); /* ToDo: reservoir level hardcoded for now */
             break;
         case DISPLAY_MSG_DISPENSING:
-            display_show_dispensing(msg.data.dispensing.grams);
+            //display_show_dispensing(msg.data.dispensing.grams);
             break;
         case DISPLAY_MSG_ERROR:
-            display_show_error(msg.data.error);
+            //display_show_error(msg.data.error);
             break;
         default:
             break;
