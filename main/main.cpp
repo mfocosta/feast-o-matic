@@ -19,6 +19,7 @@
 #include "feeder.h"
 #include "scheduler.h"
 #include "pins.h"
+#include "tof.h"
 
 static const char *TAG = "main";
 
@@ -28,6 +29,7 @@ static void sensor_task(void *pvParameter)
     TickType_t last_wake = xTaskGetTickCount();
 
     dht.begin();
+    vl53_init();
 
     for (;;) {
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(2000));
@@ -47,6 +49,25 @@ static void sensor_task(void *pvParameter)
             char buf[32];
             snprintf(buf, sizeof(buf), "%.1f", temperatura);
             esp_mqtt_client_publish(mqtt_client, "feeder/temp", buf, 0, 0, 0);
+        }
+
+        int16_t distance;
+
+        if (vl53.dataReady()) {
+            // new measurement for the taking!
+            distance = vl53.distance();
+            if (distance == -1) {
+            // something went wrong!
+            Serial.print(F("Couldn't get distance: "));
+            Serial.println(vl53.vl_status);
+            return;
+            }
+            Serial.print(F("Distance: "));
+            Serial.print(distance);
+            Serial.println(" mm");
+
+            // data is read out, time for another reading!
+            vl53.clearInterrupt();
         }
 
         /* Update display */
