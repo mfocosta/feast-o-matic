@@ -1,22 +1,47 @@
 menu "Feast-O-Matic Configuration"
 
     config WIFI_SSID
-        string "WiFi SSID"
-        default ""
+        string "SoftAP SSID"
+        default "feastomatic"
         help
-            SSID (network name) of the WiFi network to connect to.
+            SSID (network name) to set up the softAP with.
 
     config WIFI_PASSWORD
-        string "WiFi Password"
-        default ""
+        string "SoftAP Password"
+        default "feastomatic"
         help
-            Password for the WiFi network.
+            WiFi password (WPA or WPA2) for the example to use for the softAP.
 
-    config EXAMPLE_FIRMWARE_UPGRADE_URL
+    config WIFI_MAX_STA_CONN
+        int "Maximum STA connections"
+        default 1
+        help
+            Max number of the STA connects to AP.
+
+    config FIRMWARE_UPGRADE_URL
         string "firmware upgrade url endpoint"
         default "https://github.com/mfocosta/feast-o-matic/releases/latest/download/feast-o-matic.bin"
         help
             URL of server which hosts the firmware
             image.
+
+    config MQTT_BROKER_URL
+        string "Default MQTT broker URL"
+        default "mqtt://192.168.1.156:1883"
+        help
+            Default MQTT broker URL used on first boot.
+            Can be overridden via the captive portal or updated at runtime.
+
+    config 28BYJ48_STEPS_PER_REV
+        int "28BYJ48 Steps Per Revolution"
+        default 2048
+        help
+            Number of steps per revolution for the 28BYJ48 stepper motor.
+
+    config HX711_CALIBRATION_FACTOR
+        int "HX711 Calibration Factor"
+        default -1057
+        help
+            Calibration factor for the HX711 load cell amplifier.
 
 endmenu

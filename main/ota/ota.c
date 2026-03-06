@@ -15,12 +15,22 @@
 #include "string.h"
 /* Include certificate bundle to verify GitHub HTTPS server */
 #include "esp_crt_bundle.h"
+#include "events.h"
 
 #include <sys/socket.h>
 #include <inttypes.h>
 
 static const char *TAG = "ota_handler";
-SemaphoreHandle_t ota_semaphore = NULL;
+
+TaskHandle_t ota_task_handle = NULL;
+
+void ota_trigger_check(void)
+{
+    if (ota_task_handle != NULL) {
+        xTaskNotifyGive(ota_task_handle);
+        ESP_LOGI(TAG, "OTA check triggered via MQTT");
+    }
+}
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
@@ -55,22 +65,13 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 
 void ota_task(void *pvParameter)
 {
-    // Create semaphore if not already created
-    if (ota_semaphore == NULL) {
-        ota_semaphore = xSemaphoreCreateBinary();
-        if (ota_semaphore == NULL) {
-            ESP_LOGE(TAG, "Failed to create OTA semaphore");
-            vTaskDelete(NULL);
-            return;
-        }
-        xSemaphoreGive(ota_semaphore);
-    }
+    ota_task_handle = xTaskGetCurrentTaskHandle();
 
     while (1) {
-        // Wait a bit before checking for updates (5 minutes)
-        vTaskDelay(300000 / portTICK_PERIOD_MS);
+        /* Wait up to 5 minutes, or wake immediately if notified via MQTT */
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(300000));
 
-        ESP_LOGI(TAG, "Starting OTA task");
+        ESP_LOGI(TAG, "Starting OTA check");
 
         // Check if we have an IP address (indicates WiFi is connected)
         esp_netif_ip_info_t ip_info;
@@ -83,15 +84,12 @@ void ota_task(void *pvParameter)
         }
         
         ESP_LOGI(TAG, "WiFi is connected, checking for updates");
-        
-        // Signal main loop that OTA is starting
-        xSemaphoreTake(ota_semaphore, portMAX_DELAY);
 
         esp_http_client_config_t config = {
             .buffer_size       = 2048,
             .buffer_size_tx    = 1024,
             .timeout_ms        = 600000, /* max 10 minutes for firmware download */
-            .url               = CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL,
+            .url               = CONFIG_FIRMWARE_UPGRADE_URL,
             .crt_bundle_attach = esp_crt_bundle_attach,
             .event_handler     = _http_event_handler,
             .keep_alive_enable = true,
@@ -109,13 +107,8 @@ void ota_task(void *pvParameter)
         esp_err_t ret = esp_https_ota_begin(&ota_config, &https_ota_handle);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "esp_https_ota_begin failed: %s", esp_err_to_name(ret));
-            xSemaphoreGive(ota_semaphore);
-            vTaskDelay(300000 / portTICK_PERIOD_MS);
             continue;
         }
-
-        // Give semaphore back to main loop during download
-        xSemaphoreGive(ota_semaphore);
 
         // Get the image description to check version before downloading
         esp_app_desc_t new_app_info = {};
@@ -123,8 +116,6 @@ void ota_task(void *pvParameter)
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "esp_https_ota_get_img_desc failed: %s", esp_err_to_name(ret));
             esp_https_ota_abort(https_ota_handle);
-            xSemaphoreGive(ota_semaphore);
-            vTaskDelay(300000 / portTICK_PERIOD_MS);
             continue;
         }
 
@@ -143,14 +134,12 @@ void ota_task(void *pvParameter)
                        sizeof(new_app_info.version)) == 0) {
                 ESP_LOGI(TAG, "Firmware version is the same, skipping OTA update");
                 esp_https_ota_abort(https_ota_handle);
-                xSemaphoreGive(ota_semaphore);
-                vTaskDelay(300000 / portTICK_PERIOD_MS);
                 continue;
             }
-            
-            // Before performing OTA, take semaphore to pause main loop
-            xSemaphoreTake(ota_semaphore, portMAX_DELAY);
         }
+
+        // Signal all tasks that OTA flash write is starting
+        xEventGroupSetBits(system_event_group, OTA_IN_PROGRESS_BIT);
 
         // Perform the OTA download and write
         while (1) {
@@ -164,19 +153,17 @@ void ota_task(void *pvParameter)
             ret = esp_https_ota_finish(https_ota_handle);
             if (ret == ESP_OK) {
                 ESP_LOGI(TAG, "OTA Succeeded, Rebooting...");
-                xSemaphoreGive(ota_semaphore);
+                xEventGroupClearBits(system_event_group, OTA_IN_PROGRESS_BIT);
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 esp_restart();
             } else {
                 ESP_LOGE(TAG, "esp_https_ota_finish failed: %s", esp_err_to_name(ret));
-                xSemaphoreGive(ota_semaphore);
+                xEventGroupClearBits(system_event_group, OTA_IN_PROGRESS_BIT);
             }
         } else {
             ESP_LOGE(TAG, "Firmware upgrade failed: %s", esp_err_to_name(ret));
             esp_https_ota_abort(https_ota_handle);
-            xSemaphoreGive(ota_semaphore);
+            xEventGroupClearBits(system_event_group, OTA_IN_PROGRESS_BIT);
         }
-
-        vTaskDelay(300000 / portTICK_PERIOD_MS);
     }
 }
