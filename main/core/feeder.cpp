@@ -48,7 +48,6 @@ void feeder_task(void *pvParameter)
             display_post_dispensing(target_grams);
 
             /* Tare with the empty bowl already in place */
-            scale.tare();
             gpio_set_level(LEDPIN, 1);
 
             float w = 0.0f;

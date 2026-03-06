@@ -56,14 +56,23 @@ static void sensor_task(void *pvParameter)
 
 static void configure_pins(void)
 {
-    gpio_config_t io_conf = {
+    gpio_config_t io_conf_output = {
         .pin_bit_mask = GPIO_OUTPUT_PIN_SEL,
         .mode         = GPIO_MODE_OUTPUT,
         .pull_up_en   = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type    = GPIO_INTR_DISABLE,
     };
-    gpio_config(&io_conf);
+    gpio_config(&io_conf_output);
+
+    gpio_config_t io_conf_input = {
+        .pin_bit_mask = GPIO_INPUT_PIN_SEL,
+        .mode         = GPIO_MODE_INPUT,
+        .pull_up_en   = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type    = GPIO_INTR_ENABLE,
+    };
+    gpio_config(&io_conf_input);
 }
 
 extern "C" void app_main(void)
@@ -84,9 +93,6 @@ extern "C" void app_main(void)
     configure_pins();
 
     /* 6. Peripherals */
-    display_init();
-    display_show_feast_logo();
-    display_show_startup();
 
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     scale.set_scale(g_cal_factor);

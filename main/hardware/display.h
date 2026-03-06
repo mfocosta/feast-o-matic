@@ -25,15 +25,7 @@ void display_post_startup(void);
 void display_post_logo(void);
 
 /* Low-level draw functions (called only from display_task) */
-void display_show_startup(void);
-void display_show_feast_logo(void);
-void display_show_weight(float weight);
-void display_show_dht(float temp, float humidity);
-void display_show_error(const char* message);
-void display_show_dispensing(int target_grams);
-void display_show_status(float weight, float temp, float humidity);
-void display_clear(void);
-void display_update(void);
+
 
 #ifdef __cplusplus
 }
