@@ -39,7 +39,7 @@ void setup() {
   Serial.print(F("Timing budget (ms): "));
   Serial.println(vl53.getTimingBudget());
 
-  /*
+  
   vl.VL53L1X_SetDistanceThreshold(100, 300, 3, 1);
   vl.VL53L1X_SetInterruptPolarity(0);
   

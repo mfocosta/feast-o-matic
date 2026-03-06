@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-Adafruit_VL53L1X vl53;
+extern Adafruit_VL53L1X vl53;
 extern void vl53_init(void);
 
 #ifdef __cplusplus
