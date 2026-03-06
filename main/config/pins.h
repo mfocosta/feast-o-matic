@@ -8,10 +8,13 @@ extern "C" {
 /* LED */
 #define LEDPIN  GPIO_NUM_5
 
+/* MENU BUTTONS */
+#define BTN_NEXT  GPIO_NUM_1
+#define BTN_PREV  GPIO_NUM_3
 
 #define GPIO_OUTPUT_PIN_SEL  (1ULL<<LEDPIN)
 
-#define GPIO_INPUT_PIN_SEL   0
+#define GPIO_INPUT_PIN_SEL   ((1ULL<<BTN_NEXT) | (1ULL<<BTN_PREV))
 
 /* 
  * Initialized by the respective drivers/libraries

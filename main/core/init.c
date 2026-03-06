@@ -6,7 +6,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/event_groups.h"
-#include "freertos/semphr.h"
 #include "sdkconfig.h"
 #include "events.h"
 #include "init.h"
@@ -15,9 +14,9 @@ static const char *TAG = "system_init";
 static const char *NVS_NS = "feeder";
 
 /* Shared RTOS handles */
-QueueHandle_t      logic_queue       = NULL;
+QueueHandle_t      logic_queue        = NULL;
+QueueHandle_t      display_queue      = NULL;
 EventGroupHandle_t system_event_group = NULL;
-SemaphoreHandle_t  display_mutex     = NULL;
 
 /* Persisted settings – defaults come from Kconfig */
 int  g_sched_hour   = -1;
@@ -71,10 +70,10 @@ void nvs_save_broker(const char *broker_url)
 void initialize_system(void)
 {
     logic_queue        = xQueueCreate(10, sizeof(logic_queue_item_t));
+    display_queue      = xQueueCreate(8,  sizeof(display_msg_t));
     system_event_group = xEventGroupCreate();
-    display_mutex      = xSemaphoreCreateMutex();
 
-    if (!logic_queue || !system_event_group || !display_mutex) {
+    if (!logic_queue || !display_queue || !system_event_group) {
         ESP_LOGE(TAG, "Failed to create RTOS primitives!");
         abort();
     }

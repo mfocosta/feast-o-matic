@@ -27,10 +27,10 @@ static void sensor_task(void *pvParameter)
 {
     TickType_t last_wake = xTaskGetTickCount();
 
+    dht.begin();
+
     for (;;) {
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(2000));
-
-        if (is_feeding) continue; /* feeder owns display and scale */
 
         float temp = dht.readTemperature();
         float hum  = dht.readHumidity();
@@ -49,25 +49,30 @@ static void sensor_task(void *pvParameter)
             esp_mqtt_client_publish(mqtt_client, "feeder/temp", buf, 0, 0, 0);
         }
 
-        if (!(xEventGroupGetBits(system_event_group) & OTA_IN_PROGRESS_BIT)) {
-            if (xSemaphoreTake(display_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-                display_show_status(current_weight, temperatura, humidade);
-                xSemaphoreGive(display_mutex);
-            }
-        }
+        /* Update display */
+        display_post_status(current_weight, temperatura, humidade);
     }
 }
 
 static void configure_pins(void)
 {
-    gpio_config_t io_conf = {
+    gpio_config_t io_conf_output = {
         .pin_bit_mask = GPIO_OUTPUT_PIN_SEL,
         .mode         = GPIO_MODE_OUTPUT,
         .pull_up_en   = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type    = GPIO_INTR_DISABLE,
     };
-    gpio_config(&io_conf);
+    gpio_config(&io_conf_output);
+
+    gpio_config_t io_conf_input = {
+        .pin_bit_mask = GPIO_INPUT_PIN_SEL,
+        .mode         = GPIO_MODE_INPUT,
+        .pull_up_en   = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type    = GPIO_INTR_NEGEDGE,
+    };
+    gpio_config(&io_conf_input);
 }
 
 extern "C" void app_main(void)
@@ -88,11 +93,6 @@ extern "C" void app_main(void)
     configure_pins();
 
     /* 6. Peripherals */
-    dht.begin();
-
-    display_init();
-    display_show_feast_logo();
-    display_show_startup();
 
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     scale.set_scale(g_cal_factor);
@@ -103,9 +103,10 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "Hardware ready. Launching tasks...");
 
     /* 7. FreeRTOS tasks
-     *   Priority: feeder (5) > sensor (3) > scheduler (2) > ota (1)
+     *   Priority: feeder (6) > display (5) > sensor (3) > scheduler (2) > ota (1)
      */
-    xTaskCreate(feeder_task,    "feeder",    4096,  NULL, tskIDLE_PRIORITY + 5, NULL);
+    xTaskCreate(display_task,   "display",   4096,  NULL, tskIDLE_PRIORITY + 5, NULL);
+    xTaskCreate(feeder_task,    "feeder",    4096,  NULL, tskIDLE_PRIORITY + 6, NULL);
     xTaskCreate(sensor_task,    "sensor",    4096,  NULL, tskIDLE_PRIORITY + 3, NULL);
     xTaskCreate(scheduler_task, "scheduler", 4096,  NULL, tskIDLE_PRIORITY + 2, NULL);
     xTaskCreate(ota_task,       "ota",       12288, NULL, tskIDLE_PRIORITY + 1, NULL);
