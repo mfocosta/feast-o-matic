@@ -13,8 +13,26 @@
 
 /* Shared RTOS handles – defined in core/init.c */
 extern QueueHandle_t      logic_queue;
+extern QueueHandle_t      display_queue;
 extern EventGroupHandle_t system_event_group;
-extern SemaphoreHandle_t  display_mutex;
+
+/* ── Display message queue types ─────────────────────────────────────── */
+typedef enum {
+    DISPLAY_MSG_STATUS,     /* idle screen: weight + temp + humidity   */
+    DISPLAY_MSG_DISPENSING, /* feeding in progress: target grams       */
+    DISPLAY_MSG_ERROR,      /* error string                            */
+    DISPLAY_MSG_STARTUP,    /* "Sistema Iniciado" splash               */
+    DISPLAY_MSG_LOGO,       /* feast logo bitmap                       */
+} display_msg_type_t;
+
+typedef struct {
+    display_msg_type_t type;
+    union {
+        struct { float weight; float temp; float hum; } status;
+        struct { int   grams;                         } dispensing;
+        char error[64];
+    } data;
+} display_msg_t;
 
 /* Command types */
 typedef enum {

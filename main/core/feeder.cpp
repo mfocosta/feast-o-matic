@@ -27,8 +27,6 @@ static const char *TAG = "feeder";
 /* Safety cap: stop after this many cycles even if target not reached */
 #define MAX_DISPENSE_CYCLES  40
 
-volatile bool is_feeding = false;
-
 void feeder_task(void *pvParameter)
 {
     logic_queue_item_t item;
@@ -47,12 +45,7 @@ void feeder_task(void *pvParameter)
             int target_grams = item.data.grams;
             ESP_LOGI(TAG, "Feed command: %d g", target_grams);
 
-            is_feeding = true;
-
-            if (xSemaphoreTake(display_mutex, pdMS_TO_TICKS(500)) == pdTRUE) {
-                display_show_dispensing(target_grams);
-                xSemaphoreGive(display_mutex);
-            }
+            display_post_dispensing(target_grams);
 
             /* Tare with the empty bowl already in place */
             scale.tare();
@@ -70,7 +63,6 @@ void feeder_task(void *pvParameter)
 
             disableMotor();
             gpio_set_level(LEDPIN, 0);
-            is_feeding = false;
 
             if (cycles >= MAX_DISPENSE_CYCLES) {
                 ESP_LOGW(TAG, "Safety cap reached. Final weight: %.1f g", w);
@@ -78,10 +70,7 @@ void feeder_task(void *pvParameter)
                 ESP_LOGI(TAG, "Target reached in %d cycles. Final: %.1f g", cycles, w);
             }
 
-            if (xSemaphoreTake(display_mutex, pdMS_TO_TICKS(500)) == pdTRUE) {
-                display_show_status(w, 0, 0); /* sensor_task will refresh full status */
-                xSemaphoreGive(display_mutex);
-            }
+            display_post_status(w, 0, 0); /* sensor_task will refresh with full readings */
             break;
         }
 

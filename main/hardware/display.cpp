@@ -1,5 +1,8 @@
 #include <Adafruit_SSD1306.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "display.h"
+#include "events.h"
 
 static const char *TAG = "display_handler";
 
@@ -120,6 +123,77 @@ void display_update(void) {
     if (!isDisplayAvailable) return;
 
     display.display();
+}
+
+/* ── Display task ─────────────────────────────────────────────────────── */
+
+void display_task(void *pvParameter)
+{
+    display_msg_t msg;
+
+    for (;;) {
+        if (xQueueReceive(display_queue, &msg, portMAX_DELAY) != pdTRUE) continue;
+
+        switch (msg.type) {
+        case DISPLAY_MSG_STATUS:
+            display_show_status(msg.data.status.weight,
+                                msg.data.status.temp,
+                                msg.data.status.hum);
+            break;
+        case DISPLAY_MSG_DISPENSING:
+            display_show_dispensing(msg.data.dispensing.grams);
+            break;
+        case DISPLAY_MSG_ERROR:
+            display_show_error(msg.data.error);
+            break;
+        case DISPLAY_MSG_STARTUP:
+            display_show_startup();
+            break;
+        case DISPLAY_MSG_LOGO:
+            display_show_feast_logo();
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+/* ── Post helpers (non-blocking, safe to call from any task) ─────────── */
+
+void display_post_status(float weight, float temp, float hum)
+{
+    display_msg_t msg = { .type = DISPLAY_MSG_STATUS };
+    msg.data.status.weight = weight;
+    msg.data.status.temp   = temp;
+    msg.data.status.hum    = hum;
+    xQueueSend(display_queue, &msg, 0); /* non-blocking; drop if queue full */
+}
+
+void display_post_dispensing(int target_grams)
+{
+    display_msg_t msg = { .type = DISPLAY_MSG_DISPENSING };
+    msg.data.dispensing.grams = target_grams;
+    xQueueSendToFront(display_queue, &msg, 0); /* high-priority: jump the queue */
+}
+
+void display_post_error(const char *message)
+{
+    display_msg_t msg = { .type = DISPLAY_MSG_ERROR };
+    strncpy(msg.data.error, message, sizeof(msg.data.error) - 1);
+    msg.data.error[sizeof(msg.data.error) - 1] = '\0';
+    xQueueSendToFront(display_queue, &msg, 0);
+}
+
+void display_post_startup(void)
+{
+    display_msg_t msg = { .type = DISPLAY_MSG_STARTUP };
+    xQueueSend(display_queue, &msg, 0);
+}
+
+void display_post_logo(void)
+{
+    display_msg_t msg = { .type = DISPLAY_MSG_LOGO };
+    xQueueSend(display_queue, &msg, 0);
 }
 
 const uint8_t feastLogo[] = {
