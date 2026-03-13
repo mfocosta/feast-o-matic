@@ -104,7 +104,8 @@ extern "C" void app_main(void)
     configure_pins();
 
     /* 6. Peripherals */
-
+    Serial.begin(115200);
+    
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     scale.set_scale(g_cal_factor);
     scale.tare();
