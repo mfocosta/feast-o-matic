@@ -51,7 +51,7 @@ static void sensor_task(void *pvParameter)
             esp_mqtt_client_publish(mqtt_client, "feeder/temp", buf, 0, 0, 0);
         }
 
-        int16_t distance;
+        int16_t distance = -1;
 
         if (vl53_read(&distance)) {
             ESP_LOGI(TAG, "Distance: %d mm", distance);
@@ -61,7 +61,7 @@ static void sensor_task(void *pvParameter)
         }
 
         /* Update display */
-        display_post_status(current_weight, temperatura, humidade);
+        display_post_status(current_weight, temperatura, humidade, distance);
     }
 }
 
@@ -105,7 +105,7 @@ extern "C" void app_main(void)
 
     /* 6. Peripherals */
     Serial.begin(115200);
-    
+
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     scale.set_scale(g_cal_factor);
     scale.tare();

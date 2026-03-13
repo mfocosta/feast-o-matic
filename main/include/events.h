@@ -28,7 +28,7 @@ typedef enum {
 typedef struct {
     display_msg_type_t type;
     union {
-        struct { float weight; float temp; float hum; } status;
+        struct { float weight; float temp; float hum; int distance; } status;
         struct { int   grams;                         } dispensing;
         char error[64];
     } data;

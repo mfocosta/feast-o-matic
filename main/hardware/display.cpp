@@ -178,7 +178,7 @@ void display_task(void *pvParameter)
             display_show_status((int)msg.data.status.weight,
                                 msg.data.status.temp,
                                 (int)msg.data.status.hum,
-                                80); /* ToDo: reservoir level hardcoded for now */
+                                msg.data.status.distance);
             break;
         case DISPLAY_MSG_DISPENSING:
             //display_show_dispensing(msg.data.dispensing.grams);
@@ -194,12 +194,13 @@ void display_task(void *pvParameter)
 
 /* ── Post helpers (non-blocking, safe to call from any task) ─────────── */
 
-void display_post_status(float weight, float temp, float hum)
+void display_post_status(float weight, float temp, float hum, int distance)
 {
     display_msg_t msg = { .type = DISPLAY_MSG_STATUS };
     msg.data.status.weight = weight;
     msg.data.status.temp   = temp;
     msg.data.status.hum    = hum;
+    msg.data.status.distance = distance;
     xQueueSend(display_queue, &msg, 0); /* non-blocking; drop if queue full */
 }
 
