@@ -4,7 +4,15 @@
 Adafruit_VL53L1X vl53 = Adafruit_VL53L1X(-1, -1);
 static bool vl53_present = false;
 
+static bool i2c_device_present(uint8_t addr) {
+    Wire.beginTransmission(addr);
+    return Wire.endTransmission() == 0;
+}
+
 static bool vl53_try_init(void) {
+    if (!i2c_device_present(0x29)) {
+        return false;   // Silent: nothing on the bus, skip library init entirely.
+    }
     if (!vl53.begin(0x29, &Wire)) {
         return false;
     }
