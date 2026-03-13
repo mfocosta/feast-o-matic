@@ -6,7 +6,7 @@ static bool vl53_present = false;
 
 static bool i2c_device_present(uint8_t addr) {
     Wire.beginTransmission(addr);
-    return Wire.endTransmission() == 0;
+    return (Wire.endTransmission() == ESP_OK);
 }
 
 static bool vl53_try_init(void) {
@@ -39,12 +39,17 @@ bool vl53_read(int16_t *distance_mm) {
         if (!vl53_present) {
             return false;
         }
+        // Just (re-)initialised: the sensor needs at least one timing budget
+        // period before data is ready. Skip the dataReady check this cycle so
+        // we don't misread a transient vl_status and mark it absent again.
+        return false;
     }
 
     if (!vl53.dataReady()) {
-        // A non-zero vl_status after dataReady() means an I²C error — sensor
-        // was likely disconnected. Mark it absent so the next call re-probes.
-        if (vl53.vl_status != VL53L1X_ERROR_NONE) {
+        // Use a raw I²C probe to distinguish "bus error / disconnected" from
+        // "simply no measurement ready yet". vl_status is unreliable here
+        // because it can be non-zero right after a fresh init.
+        if (!i2c_device_present(0x29)) {
             vl53_present = false;
         }
         return false;
@@ -52,7 +57,7 @@ bool vl53_read(int16_t *distance_mm) {
 
     int16_t d = vl53.distance();
     if (d == -1) {
-        // A read error usually means the sensor was just removed.
+        // Read error after dataReady — sensor removed between the two calls.
         vl53.clearInterrupt();
         vl53_present = false;
         return false;
