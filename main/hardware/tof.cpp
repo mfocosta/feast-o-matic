@@ -1,4 +1,5 @@
 #include "tof.h"
+#include "events.h"
 #include <Wire.h>
 
 Adafruit_VL53L1X vl53 = Adafruit_VL53L1X(-1, -1);
@@ -20,6 +21,9 @@ static bool vl53_try_init(void) {
         return false;
     }
     vl53.setTimingBudget(50);
+
+    /* Update reservoir status on lid closure OR init */
+    xEventGroupSetBits(system_event_group, RESERVOIR_UPDATE_BIT);
     return true;
 }
 
@@ -39,6 +43,7 @@ bool vl53_read(int16_t *distance_mm) {
         if (!vl53_present) {
             return false;
         }
+
         // Just (re-)initialised: the sensor needs at least one timing budget
         // period before data is ready. Skip the dataReady check this cycle so
         // we don't misread a transient vl_status and mark it absent again.

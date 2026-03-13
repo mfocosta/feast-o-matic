@@ -7,14 +7,17 @@
 #include "freertos/semphr.h"
 
 /* System-wide event group bits */
-#define WIFI_CONNECTED_BIT  BIT0
-#define MQTT_CONNECTED_BIT  BIT1
-#define OTA_IN_PROGRESS_BIT BIT2
+#define WIFI_CONNECTED_BIT    BIT0
+#define MQTT_CONNECTED_BIT    BIT1
+#define OTA_IN_PROGRESS_BIT   BIT2
+#define DISPLAY_AVAILABLE_BIT BIT3
+#define RESERVOIR_UPDATE_BIT  BIT4
 
 /* Shared RTOS handles – defined in core/init.c */
 extern QueueHandle_t      logic_queue;
 extern QueueHandle_t      display_queue;
 extern EventGroupHandle_t system_event_group;
+extern SemaphoreHandle_t  i2c_mutex;
 
 /* ── Display message queue types ─────────────────────────────────────── */
 typedef enum {

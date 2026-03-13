@@ -21,12 +21,12 @@ void vl53_init(void);
 bool vl53_read(int16_t *distance_mm);
 
 /**
- * Convert a raw distance reading to a fill level quantised to 5 % steps.
+ * Convert a raw distance reading to a fill level.
  *
  *   0 mm  → 100 %  (full)
  *   100 mm → 0 %   (empty)
  *
- * The result is clamped to [0, 100] and rounded to the nearest multiple of 5.
+ * The result is clamped to [0, 100]
  */
 static inline int tof_fill_percent(int16_t distance_mm)
 {
@@ -37,8 +37,7 @@ static inline int tof_fill_percent(int16_t distance_mm)
     if (pct < 0)   pct = 0;
     if (pct > 100) pct = 100;
 
-    /* Quantise to nearest 5 % step */
-    return ((pct + 2) / 5) * 5;
+    return pct;
 }
 
 #ifdef __cplusplus

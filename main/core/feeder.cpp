@@ -69,7 +69,9 @@ void feeder_task(void *pvParameter)
                 ESP_LOGI(TAG, "Target reached in %d cycles. Final: %.1f g", cycles, w);
             }
 
-            display_post_status(w, 0, 0); /* sensor_task will refresh with full readings */
+            /* Update reservoir status */
+            xEventGroupSetBits(system_event_group, RESERVOIR_UPDATE_BIT);
+
             break;
         }
 

@@ -17,6 +17,7 @@ static const char *NVS_NS = "feeder";
 QueueHandle_t      logic_queue        = NULL;
 QueueHandle_t      display_queue      = NULL;
 EventGroupHandle_t system_event_group = NULL;
+SemaphoreHandle_t  i2c_mutex          = NULL;
 
 /* Persisted settings – defaults come from Kconfig */
 int  g_sched_hour   = -1;
@@ -72,8 +73,9 @@ void initialize_system(void)
     logic_queue        = xQueueCreate(10, sizeof(logic_queue_item_t));
     display_queue      = xQueueCreate(8,  sizeof(display_msg_t));
     system_event_group = xEventGroupCreate();
+    i2c_mutex          = xSemaphoreCreateMutex();
 
-    if (!logic_queue || !display_queue || !system_event_group) {
+    if (!logic_queue || !display_queue || !system_event_group || !i2c_mutex) {
         ESP_LOGE(TAG, "Failed to create RTOS primitives!");
         abort();
     }

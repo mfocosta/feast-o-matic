@@ -178,6 +178,8 @@ void display_task(void *pvParameter)
 
     for (;;) {
         if (xQueueReceive(display_queue, &msg, portMAX_DELAY) != pdTRUE) continue;
+        
+        xSemaphoreTake(i2c_mutex, portMAX_DELAY);
 
         switch (msg.type) {
         case DISPLAY_MSG_STATUS:
@@ -195,6 +197,8 @@ void display_task(void *pvParameter)
         default:
             break;
         }
+        
+        xSemaphoreGive(i2c_mutex);
     }
 }
 

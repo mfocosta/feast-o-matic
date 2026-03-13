@@ -34,6 +34,8 @@ static void sensor_task(void *pvParameter)
     for (;;) {
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(2000));
 
+        xSemaphoreTake(i2c_mutex, portMAX_DELAY);
+
         float temp = dht.readTemperature();
         float hum  = dht.readHumidity();
         float w    = scale.get_units();
@@ -59,15 +61,21 @@ static void sensor_task(void *pvParameter)
             //snprintf(buf, sizeof(buf), "%d", distance);
             //esp_mqtt_client_publish(mqtt_client, "feeder/distance", buf, 0, 0, 0);
         }
-        if (distance != -1) {
-            int fill_pct = tof_fill_percent(distance);
+
+        static int fill_pct = -1;
+
+        if ((distance != -1) && (xEventGroupGetBits(system_event_group) & RESERVOIR_UPDATE_BIT)) {
+            xEventGroupClearBits(system_event_group, RESERVOIR_UPDATE_BIT);
+            fill_pct = tof_fill_percent(distance);
         }
-        else {
-            int fill_pct = -1; /* invalid / unknown */
+        else if (distance == -1) {
+            fill_pct = -1; /* lid open */
         }
 
         /* Update display */
         display_post_status(current_weight, temperatura, humidade, fill_pct);
+
+        xSemaphoreGive(i2c_mutex);
     }
 }
 
