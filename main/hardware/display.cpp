@@ -51,14 +51,20 @@ void desenharInterfaceFixa() {
   display.display();
 }
 
-void display_show_status(int bowl_weight, float temp, int hum, int reservoir_level) {
+void display_show_status(int bowl_weight, float temp, int hum, int fill_pct) {
   display.fillRect(5, 30, 55, 20, SSD1306_BLACK);   
   display.fillRect(75, 30, 50, 20, SSD1306_BLACK);  
   display.fillRect(0, 55, 128, 9, SSD1306_BLACK);   
 
   display.setTextSize(2);
   display.setCursor(5, 32);
-  display.print(reservoir_level); display.setTextSize(1); display.print("%");
+
+  if (fill_pct != -1) {
+    display.print(fill_pct); display.setTextSize(1); display.print("%");
+  }
+  else {
+    display.print("--"); display.setTextSize(1); display.print("%");
+  }
 
   display.setTextSize(2);
   display.setCursor(75, 32);
@@ -178,7 +184,7 @@ void display_task(void *pvParameter)
             display_show_status((int)msg.data.status.weight,
                                 msg.data.status.temp,
                                 (int)msg.data.status.hum,
-                                msg.data.status.distance);
+                                msg.data.status.fill_pct);
             break;
         case DISPLAY_MSG_DISPENSING:
             //display_show_dispensing(msg.data.dispensing.grams);
@@ -194,13 +200,13 @@ void display_task(void *pvParameter)
 
 /* ── Post helpers (non-blocking, safe to call from any task) ─────────── */
 
-void display_post_status(float weight, float temp, float hum, int distance)
+void display_post_status(float weight, float temp, float hum, int fill_pct)
 {
     display_msg_t msg = { .type = DISPLAY_MSG_STATUS };
     msg.data.status.weight = weight;
     msg.data.status.temp   = temp;
     msg.data.status.hum    = hum;
-    msg.data.status.distance = distance;
+    msg.data.status.fill_pct = fill_pct;
     xQueueSend(display_queue, &msg, 0); /* non-blocking; drop if queue full */
 }
 

@@ -18,7 +18,7 @@ void display_init(void);
 void display_task(void *pvParameter);
 
 /* Non-blocking post helpers (send to display_queue from any task) */
-void display_post_status(float weight, float temp, float hum);
+void display_post_status(float weight, float temp, float hum, int fill_pct);
 void display_post_dispensing(int target_grams);
 void display_post_error(const char *message);
 void display_post_startup(void);
