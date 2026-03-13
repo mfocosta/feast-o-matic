@@ -53,21 +53,11 @@ static void sensor_task(void *pvParameter)
 
         int16_t distance;
 
-        if (vl53.dataReady()) {
-            // new measurement for the taking!
-            distance = vl53.distance();
-            if (distance == -1) {
-            // something went wrong!
-            Serial.print(F("Couldn't get distance: "));
-            Serial.println(vl53.vl_status);
-            return;
-            }
-            Serial.print(F("Distance: "));
-            Serial.print(distance);
-            Serial.println(" mm");
-
-            // data is read out, time for another reading!
-            vl53.clearInterrupt();
+        if (vl53_read(&distance)) {
+            ESP_LOGI(TAG, "Distance: %d mm", distance);
+            //char buf[32];
+            //snprintf(buf, sizeof(buf), "%d", distance);
+            //esp_mqtt_client_publish(mqtt_client, "feeder/distance", buf, 0, 0, 0);
         }
 
         /* Update display */

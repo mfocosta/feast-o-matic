@@ -8,7 +8,9 @@ extern "C" {
 #endif
 
 extern Adafruit_VL53L1X vl53;
-extern void vl53_init(void);
+
+void vl53_init(void);
+bool vl53_read(int16_t *distance_mm);
 
 #ifdef __cplusplus
 }
