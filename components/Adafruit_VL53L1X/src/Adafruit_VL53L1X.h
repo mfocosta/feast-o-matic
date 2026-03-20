@@ -32,7 +32,7 @@
 /**************************************************************************/
 class Adafruit_VL53L1X : public VL53L1X {
 public:
-  Adafruit_VL53L1X(uint8_t shutdown_pin = -1, uint8_t irq_pin = -1);
+  Adafruit_VL53L1X(int8_t shutdown_pin = -1, int8_t irq_pin = -1);
 
   using VL53L1X::begin;
   bool begin(uint8_t i2c_addr = VL53L1X_I2C_ADDR, TwoWire *theWire = &Wire,

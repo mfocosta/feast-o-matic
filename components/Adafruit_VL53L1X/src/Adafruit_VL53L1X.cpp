@@ -38,7 +38,7 @@
     @param irq_pin Optional specify pin attached to interrupt
 */
 /**************************************************************************/
-Adafruit_VL53L1X::Adafruit_VL53L1X(uint8_t shutdown_pin, uint8_t irq_pin)
+Adafruit_VL53L1X::Adafruit_VL53L1X(int8_t shutdown_pin, int8_t irq_pin)
     : VL53L1X(NULL, irq_pin) {
   _shutdown_pin = shutdown_pin;
   _irq_pin = irq_pin;
