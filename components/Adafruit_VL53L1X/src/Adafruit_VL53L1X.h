@@ -51,14 +51,11 @@ public:
   bool setIntPolarity(bool polarity);
   bool getIntPolarity(void);
 
-  /*
-  boolean SetDistanceMode(VL53L1_DistanceModes mode);
-  boolean SetMeasurementTimingBudgetMicroSeconds(uint32_t budget);
-  boolean SetInterMeasurementPeriodMilliSeconds(uint32_t period);
-  boolean StartMeasurement(void);
-  boolean WaitMeasurementDataReady(void);
-  boolean GetRangingMeasurementData(VL53L1_RangingMeasurementData_t *ranging);
-  */
+  bool setDistanceMode(uint16_t mode);
+  uint16_t getDistanceMode(void);
+
+  bool setInterMeasurementPeriod(uint16_t ms);
+  uint16_t getInterMeasurementPeriod(void);
 
   VL53L1X_ERROR vl_status; /**< VL53L1X API Error Status */
 

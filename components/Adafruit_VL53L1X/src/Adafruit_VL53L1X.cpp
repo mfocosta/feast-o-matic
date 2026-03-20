@@ -249,18 +249,57 @@ uint16_t Adafruit_VL53L1X::getTimingBudget(void) {
   return 0;
 }
 
-/*
-
-}
-
-boolean Adafruit_VL53L1X::SetDistanceMode(VL53L1_DistanceModes mode) {
-  Status = VL53L1_SetDistanceMode(pMyDevice, mode );
-  return (Status == VL53L1_ERROR_NONE);
-}
-
-boolean
-Adafruit_VL53L1X::GetRangingMeasurementData(VL53L1_RangingMeasurementData_t
-*ranging) { Status = VL53L1_GetRangingMeasurementData(pMyDevice, ranging);
-  return (Status == VL53L1_ERROR_NONE);
-}
+/**************************************************************************/
+/*!
+    @brief  Set the distance mode.
+    @param mode 1 for short (up to 1.3 m), 2 for long (up to 4 m, default).
+    @returns True if successful, otherwise false.
 */
+/**************************************************************************/
+bool Adafruit_VL53L1X::setDistanceMode(uint16_t mode) {
+  vl_status = VL53L1X_SetDistanceMode(mode);
+  return (vl_status == VL53L1X_ERROR_NONE);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Get the distance mode.
+    @returns 1 for short, 2 for long, 0 on error.
+*/
+/**************************************************************************/
+uint16_t Adafruit_VL53L1X::getDistanceMode(void) {
+  uint16_t mode = 0;
+  vl_status = VL53L1X_GetDistanceMode(&mode);
+  if (vl_status == VL53L1X_ERROR_NONE) {
+    return mode;
+  }
+  return 0;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Set the inter-measurement period (time between ranging shots).
+            Must be >= timing budget. Default is 100 ms.
+    @param ms Period in milliseconds.
+    @returns True if successful, otherwise false.
+*/
+/**************************************************************************/
+bool Adafruit_VL53L1X::setInterMeasurementPeriod(uint16_t ms) {
+  vl_status = VL53L1X_SetInterMeasurementInMs(ms);
+  return (vl_status == VL53L1X_ERROR_NONE);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Get the inter-measurement period.
+    @returns Period in milliseconds, or 0 on error.
+*/
+/**************************************************************************/
+uint16_t Adafruit_VL53L1X::getInterMeasurementPeriod(void) {
+  uint16_t ms = 0;
+  vl_status = VL53L1X_GetInterMeasurementInMs(&ms);
+  if (vl_status == VL53L1X_ERROR_NONE) {
+    return ms;
+  }
+  return 0;
+}

@@ -17,10 +17,19 @@ static bool vl53_try_init(void) {
     if (!vl53.begin(0x29, &Wire)) {
         return false;
     }
+    if (!vl53.setDistanceMode(1)) {  // Short mode (up to 1.3 m) is more accurate
+        return false;
+    }
+    if (!vl53.setTimingBudget(500)) { // Max timing budget (500 ms) for best accuracy; our sensor task reads every 2 s, so this is fine.
+        return false;
+    }
+    if (!vl53.setInterMeasurementPeriod(2000)) { // Match our sensor task period so the sensor is always ready with a new measurement when we read it.
+        return false;
+    }
     if (!vl53.startRanging()) {
         return false;
     }
-    vl53.setTimingBudget(50);
+
 
     /* Update reservoir status on lid closure OR init */
     xEventGroupSetBits(system_event_group, RESERVOIR_UPDATE_BIT);
