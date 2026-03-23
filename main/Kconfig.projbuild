@@ -44,4 +44,19 @@ menu "Feast-O-Matic Configuration"
         help
             Calibration factor for the HX711 load cell amplifier.
 
+    config HX711_RAW_OFFSET
+        int "HX711 Raw Offset (empty scale)"
+        default 0
+        help
+            Raw HX711 reading with nothing on the scale and no bowl.
+            Used instead of a live tare so the scale is zeroed without
+            needing a known-empty pan at boot.
+
+    config BOWL_WEIGHT_GRAMS
+        int "Bowl weight in grams"
+        default 0
+        help
+            Weight of the bowl in grams. Used to compensate the scale
+            reading when a bowl is present but its NFC tag cannot be read.
+
 endmenu

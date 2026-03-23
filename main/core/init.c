@@ -20,10 +20,12 @@ EventGroupHandle_t system_event_group = NULL;
 SemaphoreHandle_t  i2c_mutex          = NULL;
 
 /* Persisted settings – defaults come from Kconfig */
-int  g_sched_hour   = -1;
-int  g_sched_minute = 0;
-int  g_sched_grams  = 100;
-int  g_cal_factor   = CONFIG_HX711_CALIBRATION_FACTOR;
+int16_t  g_sched_hour   = -1;
+int16_t  g_sched_minute = 0;
+int16_t  g_sched_grams  = 100;
+int16_t  g_cal_factor   = CONFIG_HX711_CALIBRATION_FACTOR;
+int32_t  g_raw_offset   = CONFIG_HX711_RAW_OFFSET;
+int16_t  g_bowl_g       = CONFIG_BOWL_WEIGHT_GRAMS;
 char g_mqtt_broker[128] = CONFIG_MQTT_BROKER_URL;
 
 void nvs_load_settings(void)
@@ -34,10 +36,12 @@ void nvs_load_settings(void)
         return;
     }
     int32_t val;
-    if (nvs_get_i32(nvs, "sched_hour",   &val) == ESP_OK) g_sched_hour   = (int)val;
-    if (nvs_get_i32(nvs, "sched_minute", &val) == ESP_OK) g_sched_minute = (int)val;
-    if (nvs_get_i32(nvs, "sched_grams",  &val) == ESP_OK) g_sched_grams  = (int)val;
-    if (nvs_get_i32(nvs, "cal_factor",   &val) == ESP_OK) g_cal_factor   = (int)val;
+    if (nvs_get_i32(nvs, "sched_hour",   &val) == ESP_OK) g_sched_hour   = (int16_t)val;
+    if (nvs_get_i32(nvs, "sched_minute", &val) == ESP_OK) g_sched_minute = (int16_t)val;
+    if (nvs_get_i32(nvs, "sched_grams",  &val) == ESP_OK) g_sched_grams  = (int16_t)val;
+    if (nvs_get_i32(nvs, "cal_factor",   &val) == ESP_OK) g_cal_factor   = (int16_t)val;
+    if (nvs_get_i32(nvs, "raw_offset",   &val) == ESP_OK) g_raw_offset   = (int32_t)val;
+    if (nvs_get_i32(nvs, "bowl_g",       &val) == ESP_OK) g_bowl_g       = (int16_t)val;
     size_t len = sizeof(g_mqtt_broker);
     nvs_get_str(nvs, "mqtt_broker", g_mqtt_broker, &len);
     nvs_close(nvs);
@@ -52,6 +56,8 @@ void nvs_save_settings(void)
     nvs_set_i32(nvs, "sched_minute", (int32_t)g_sched_minute);
     nvs_set_i32(nvs, "sched_grams",  (int32_t)g_sched_grams);
     nvs_set_i32(nvs, "cal_factor",   (int32_t)g_cal_factor);
+    nvs_set_i32(nvs, "raw_offset",   (int32_t)g_raw_offset);
+    nvs_set_i32(nvs, "bowl_g",       (int32_t)g_bowl_g);
     nvs_commit(nvs);
     nvs_close(nvs);
     ESP_LOGI(TAG, "Settings saved to NVS");

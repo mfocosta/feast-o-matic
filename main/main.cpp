@@ -26,9 +26,6 @@
 static const char *MAIN_TAG = "main";
 static const char *SENSOR_TAG = "sensor";
 
-/* Scale tare offset captured at boot (no bowl) */
-long base_offset = 0;
-
 /* Sensor task: reads DHT11 + scale every 2 s, updates display when idle */
 static void sensor_task(void *pvParameter)
 {
@@ -37,6 +34,11 @@ static void sensor_task(void *pvParameter)
     dht.begin();
     nfc_init();
     vl53_init();
+
+
+    scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+    scale.set_scale(g_cal_factor);
+    scale.set_offset(g_raw_offset);   /* use the known empty-scale raw value */
 
     int16_t fill_pct = -1;
 
@@ -98,9 +100,14 @@ static void sensor_task(void *pvParameter)
             if (uidLen != last_uid_len || memcmp(uid, last_uid, uidLen) != 0) {
                 float bowl_g = 0.0f;
                 if (nfc_read_bowl_weight(&bowl_g)) {
-                    long new_offset = base_offset + (long)(bowl_g * scale.get_scale());
+                    long new_offset = g_raw_offset + (long)(bowl_g * scale.get_scale());
                     scale.set_offset(new_offset);
                     ESP_LOGI(SENSOR_TAG, "Bowl detected: %.1f g tare", bowl_g);
+                } else if (g_bowl_g > 0) {
+                    /* NFC tag unreadable – fall back to the configured bowl weight */
+                    long new_offset = g_raw_offset + (long)(g_bowl_g * scale.get_scale());
+                    scale.set_offset(new_offset);
+                    ESP_LOGW(SENSOR_TAG, "Tag found but unreadable; using configured %.0f g bowl", (float)g_bowl_g);
                 } else {
                     ESP_LOGW(SENSOR_TAG, "Tag found but failed to read page 6");
                 }
@@ -112,7 +119,7 @@ static void sensor_task(void *pvParameter)
             if (last_uid_len != 0) {
                 nfc_miss_count++;
                 if (nfc_miss_count >= 3) {
-                    scale.set_offset(base_offset);
+                    scale.set_offset(g_raw_offset);
                     last_uid_len = 0;
                     memset(last_uid, 0, sizeof(last_uid));
                     ESP_LOGI(SENSOR_TAG, "Bowl removed, offset reverted");

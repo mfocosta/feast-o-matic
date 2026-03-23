@@ -5,10 +5,12 @@ extern "C" {
 #endif
 
 /* Persisted settings (loaded from NVS on boot, defaults come from Kconfig) */
-extern int  g_sched_hour;    /* -1 = no schedule configured */
-extern int  g_sched_minute;
-extern int  g_sched_grams;
-extern int  g_cal_factor;
+extern int16_t  g_sched_hour;    /* -1 = no schedule configured */
+extern int16_t  g_sched_minute;
+extern int16_t  g_sched_grams;
+extern int16_t  g_cal_factor;
+extern int32_t  g_raw_offset;    /* HX711 raw reading with empty scale, no bowl */
+extern int16_t  g_bowl_g;        /* bowl weight in grams */
 extern char g_mqtt_broker[128];
 
 /* Create all RTOS primitives (call before initArduino) */
