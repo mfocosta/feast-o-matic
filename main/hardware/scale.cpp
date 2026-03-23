@@ -2,6 +2,12 @@
 
 HX711 scale;
 
-float target_weight   = 0;   /* Fetched later from NVS (grams) */ 
-float current_weight  = 0;         
-float previous_weight = 0;      
+/* Initialize the scale */
+bool scale_init(void)
+{
+    scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+    scale.set_scale(g_cal_factor);
+    scale.set_offset(g_raw_offset);   /* use the known empty-scale raw value */
+
+    return true;
+}

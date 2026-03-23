@@ -8,9 +8,8 @@ extern "C" {
 #endif
 
 extern HX711 scale;
-extern float target_weight;
-extern float current_weight;
-extern float previous_weight;
+
+bool scale_init(void);
 
 #ifdef __cplusplus
 }

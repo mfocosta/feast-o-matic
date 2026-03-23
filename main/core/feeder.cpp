@@ -32,6 +32,8 @@ void feeder_task(void *pvParameter)
 {
     logic_queue_item_t item;
 
+    stepper.setSpeed(10);
+
     for (;;) {
         if (xQueueReceive(logic_queue, &item, portMAX_DELAY) != pdTRUE) continue;
 
@@ -48,26 +50,26 @@ void feeder_task(void *pvParameter)
 
             display_post_dispensing(target_grams);
 
-            /* Tare with the empty bowl already in place */
+            /* Turn on LED during dispensing */
             gpio_set_level(LEDPIN, 1);
 
-            float w = 0.0f;
+            float weight = 0.0f;
             int cycles = 0;
-            while (w < (float)target_grams && cycles < MAX_DISPENSE_CYCLES) {
+            while (weight < (float)target_grams && cycles < MAX_DISPENSE_CYCLES) {
                 stepper.step(-DISPENSE_STEPS);
                 vTaskDelay(pdMS_TO_TICKS(300)); /* let food settle before weighing */
-                w = scale.get_units();
-                ESP_LOGI(TAG, "  cycle %d: %.1f / %d g", cycles + 1, w, target_grams);
+                weight = scale.get_units();
+                ESP_LOGI(TAG, "  cycle %d: %.1f / %d g", cycles + 1, weight, target_grams);
                 cycles++;
             }
 
-            disableMotor();
+            //disableMotor();
             gpio_set_level(LEDPIN, 0);
 
             if (cycles >= MAX_DISPENSE_CYCLES) {
-                ESP_LOGW(TAG, "Safety cap reached. Final weight: %.1f g", w);
+                ESP_LOGW(TAG, "Safety cap reached. Final weight: %.1f g", weight);
             } else {
-                ESP_LOGI(TAG, "Target reached in %d cycles. Final: %.1f g", cycles, w);
+                ESP_LOGI(TAG, "Target reached in %d cycles. Final: %.1f g", cycles, weight);
             }
 
             /* Update reservoir status */

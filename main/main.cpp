@@ -34,11 +34,7 @@ static void sensor_task(void *pvParameter)
     dht.begin();
     nfc_init();
     vl53_init();
-
-
-    scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-    scale.set_scale(g_cal_factor);
-    scale.set_offset(g_raw_offset);   /* use the known empty-scale raw value */
+    scale_init();
 
     int16_t fill_pct = -1;
 
@@ -52,15 +48,14 @@ static void sensor_task(void *pvParameter)
 
         xSemaphoreTake(i2c_mutex, portMAX_DELAY);
 
-        float temp = dht.readTemperature();
-        float hum  = dht.readHumidity();
-        float w    = scale.get_units();
+        float temp   = dht.readTemperature();
+        float hum    = dht.readHumidity();
+        float weight = scale.get_units();
 
         if (!isnan(temp) && !isnan(hum)) {
             temperatura = temp;
             humidade    = hum;
         }
-        current_weight = w;
 
         /* Publish temperature */
         if (mqtt_client != NULL) {
@@ -87,7 +82,7 @@ static void sensor_task(void *pvParameter)
         }
 
         /* Update display */
-        display_post_status(current_weight, temperatura, humidade, fill_pct);
+        display_post_status(weight, temperatura, humidade, fill_pct);
 
         /* ── NFC bowl detection ──────────────────────────────────── */
         uint8_t uid[7];
@@ -172,20 +167,13 @@ extern "C" void app_main(void)
     /* 6. Peripherals */
     Serial.begin(115200);
 
-    scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-    scale.set_scale(g_cal_factor);
-    scale.tare();
-    base_offset = scale.get_offset();
-
-    stepper.setSpeed(10);
-
-    ESP_LOGI(MAIN_TAG, "Hardware ready. Launching tasks...");
+    ESP_LOGI(MAIN_TAG, "Init done. Launching tasks...");
 
     /* 7. FreeRTOS tasks
      *   Priority: feeder (6) > display (5) > sensor (3) > scheduler (2) > ota (1)
      */
-    xTaskCreate(display_task,   "display",   4096,  NULL, tskIDLE_PRIORITY + 5, NULL);
     xTaskCreate(feeder_task,    "feeder",    4096,  NULL, tskIDLE_PRIORITY + 6, NULL);
+    xTaskCreate(display_task,   "display",   4096,  NULL, tskIDLE_PRIORITY + 5, NULL);
     xTaskCreate(sensor_task,    "sensor",    4096,  NULL, tskIDLE_PRIORITY + 3, NULL);
     xTaskCreate(scheduler_task, "scheduler", 4096,  NULL, tskIDLE_PRIORITY + 2, NULL);
     xTaskCreate(ota_task,       "ota",       12288, NULL, tskIDLE_PRIORITY + 1, NULL);
