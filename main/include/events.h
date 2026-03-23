@@ -41,6 +41,7 @@ typedef struct {
 typedef enum {
     CMD_FEED_NOW,
     CMD_UPDATE_SCHEDULE,
+    CMD_WRITE_BOWL_TAG,
 } cmd_type_t;
 
 typedef struct {
@@ -53,7 +54,8 @@ typedef struct {
 typedef struct {
     cmd_type_t type;
     union {
-        int                  grams;    /* CMD_FEED_NOW      */
-        data_feed_schedule_t schedule; /* CMD_UPDATE_SCHEDULE */
+        int                  grams;        /* CMD_FEED_NOW        */
+        data_feed_schedule_t schedule;     /* CMD_UPDATE_SCHEDULE */
+        float                bowl_weight;  /* CMD_WRITE_BOWL_TAG  */
     } data;
 } logic_queue_item_t;

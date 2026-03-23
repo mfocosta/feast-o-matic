@@ -19,6 +19,7 @@
 #include "motor.h"
 #include "display.h"
 #include "pins.h"
+#include "nfc.h"
 
 static const char *TAG = "feeder";
 
@@ -82,6 +83,17 @@ void feeder_task(void *pvParameter)
             nvs_save_settings();
             ESP_LOGI(TAG, "Schedule updated: %02d:%02d, %d g",
                      g_sched_hour, g_sched_minute, g_sched_grams);
+            break;
+        }
+
+        case CMD_WRITE_BOWL_TAG: {
+            xSemaphoreTake(i2c_mutex, portMAX_DELAY);
+            bool write_ok = nfc_write_bowl_weight(item.data.bowl_weight);
+            xSemaphoreGive(i2c_mutex);
+            if (write_ok)
+                ESP_LOGI(TAG, "Bowl tag written: %.1f g", item.data.bowl_weight);
+            else
+                ESP_LOGW(TAG, "Bowl tag write failed (no tag?)");
             break;
         }
 

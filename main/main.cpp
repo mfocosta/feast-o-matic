@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "Arduino.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -20,8 +21,13 @@
 #include "scheduler.h"
 #include "pins.h"
 #include "tof.h"
+#include "nfc.h"
 
-static const char *TAG = "main";
+static const char *MAIN_TAG = "main";
+static const char *SENSOR_TAG = "sensor";
+
+/* Scale tare offset captured at boot (no bowl) */
+long base_offset = 0;
 
 /* Sensor task: reads DHT11 + scale every 2 s, updates display when idle */
 static void sensor_task(void *pvParameter)
@@ -29,7 +35,15 @@ static void sensor_task(void *pvParameter)
     TickType_t last_wake = xTaskGetTickCount();
 
     dht.begin();
+    nfc_init();
     vl53_init();
+
+    int16_t fill_pct = -1;
+
+    /* NFC bowl-tracking state */
+    uint8_t last_uid[7] = {0};
+    uint8_t last_uid_len = 0;
+    int     nfc_miss_count = 0;
 
     for (;;) {
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(2000));
@@ -56,13 +70,11 @@ static void sensor_task(void *pvParameter)
         int16_t distance = -1;
 
         if (vl53_read(&distance)) {
-            ESP_LOGI(TAG, "Distance: %d mm", distance);
+            ESP_LOGI(SENSOR_TAG, "Distance: %d mm", distance);
             //char buf[32];
             //snprintf(buf, sizeof(buf), "%d", distance);
             //esp_mqtt_client_publish(mqtt_client, "feeder/distance", buf, 0, 0, 0);
         }
-
-        static int fill_pct = -1;
 
         if ((distance != -1) && (xEventGroupGetBits(system_event_group) & RESERVOIR_UPDATE_BIT)) {
             xEventGroupClearBits(system_event_group, RESERVOIR_UPDATE_BIT);
@@ -74,6 +86,39 @@ static void sensor_task(void *pvParameter)
 
         /* Update display */
         display_post_status(current_weight, temperatura, humidade, fill_pct);
+
+        /* ── NFC bowl detection ──────────────────────────────────── */
+        uint8_t uid[7];
+        uint8_t uidLen = 0;
+
+        if (nfc_poll_uid(uid, &uidLen)) {
+            nfc_miss_count = 0;
+
+            /* New bowl? (different UID from last) */
+            if (uidLen != last_uid_len || memcmp(uid, last_uid, uidLen) != 0) {
+                float bowl_g = 0.0f;
+                if (nfc_read_bowl_weight(&bowl_g)) {
+                    long new_offset = base_offset + (long)(bowl_g * scale.get_scale());
+                    scale.set_offset(new_offset);
+                    ESP_LOGI(SENSOR_TAG, "Bowl detected: %.1f g tare", bowl_g);
+                } else {
+                    ESP_LOGW(SENSOR_TAG, "Tag found but failed to read page 6");
+                }
+                memcpy(last_uid, uid, uidLen);
+                last_uid_len = uidLen;
+            }
+        } else {
+            /* No tag – revert offset after 3 consecutive misses (~6 s) */
+            if (last_uid_len != 0) {
+                nfc_miss_count++;
+                if (nfc_miss_count >= 3) {
+                    scale.set_offset(base_offset);
+                    last_uid_len = 0;
+                    memset(last_uid, 0, sizeof(last_uid));
+                    ESP_LOGI(SENSOR_TAG, "Bowl removed, offset reverted");
+                }
+            }
+        }
 
         xSemaphoreGive(i2c_mutex);
     }
@@ -123,10 +168,11 @@ extern "C" void app_main(void)
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     scale.set_scale(g_cal_factor);
     scale.tare();
+    base_offset = scale.get_offset();
 
     stepper.setSpeed(10);
 
-    ESP_LOGI(TAG, "Hardware ready. Launching tasks...");
+    ESP_LOGI(MAIN_TAG, "Hardware ready. Launching tasks...");
 
     /* 7. FreeRTOS tasks
      *   Priority: feeder (6) > display (5) > sensor (3) > scheduler (2) > ota (1)
@@ -140,6 +186,6 @@ extern "C" void app_main(void)
     /* 8. MQTT client (runs in its own internal task) */
     mqtt_app_start();
 
-    ESP_LOGI(TAG, "All tasks launched.");
+    ESP_LOGI(MAIN_TAG, "All tasks launched.");
     vTaskDelete(NULL); /* boot task no longer needed */
 }

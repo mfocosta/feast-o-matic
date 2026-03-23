@@ -5,6 +5,7 @@
  * Command protocol (plain text, no JSON needed):
  *   feed:<GRAMS>                     e.g. "feed:100"
  *   schedule:<HOUR>:<MINUTE>:<GRAMS> e.g. "schedule:8:0:100"
+ *   bowl:<WEIGHT>                    e.g. "bowl:150.0" (write bowl tare to NFC tag)
  *   ota                              triggers an immediate OTA check
  *
  * The broker URL is read from g_mqtt_broker (init.h), which is loaded from
@@ -37,6 +38,7 @@ static void handle_command(const char *data, int data_len)
 
     logic_queue_item_t item = {0};
     int grams, hour, minute;
+    float bowl_w;
 
     if (sscanf(buf, "feed:%d", &grams) == 1) {
         item.type       = CMD_FEED_NOW;
@@ -50,6 +52,12 @@ static void handle_command(const char *data, int data_len)
         item.data.schedule.minute = minute;
         item.data.schedule.grams  = grams;
         ESP_LOGI(TAG, "CMD_UPDATE_SCHEDULE: %02d:%02d, %d g", hour, minute, grams);
+        xQueueSend(logic_queue, &item, pdMS_TO_TICKS(500));
+
+    } else if (sscanf(buf, "bowl:%f", &bowl_w) == 1) {
+        item.type             = CMD_WRITE_BOWL_TAG;
+        item.data.bowl_weight = bowl_w;
+        ESP_LOGI(TAG, "CMD_WRITE_BOWL_TAG: %.1f g", bowl_w);
         xQueueSend(logic_queue, &item, pdMS_TO_TICKS(500));
 
     } else if (strcmp(buf, "ota") == 0) {
