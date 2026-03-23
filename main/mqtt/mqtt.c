@@ -3,10 +3,10 @@
  * Subscribes to "feeder/command" and publishes status on "feeder/status".
  *
  * Command protocol (plain text, no JSON needed):
- *   feed:<GRAMS>                     e.g. "feed:100"
- *   schedule:<HOUR>:<MINUTE>:<GRAMS> e.g. "schedule:8:0:100"
- *   bowl:<WEIGHT>                    e.g. "bowl:150.0" (write bowl tare to NFC tag)
- *   ota                              triggers an immediate OTA check
+ *   feed:<GRAMS>                              e.g. "feed:100"
+ *   schedule:<SLOT>:<HOUR>:<MINUTE>:<GRAMS>  e.g. "schedule:0:8:0:100"
+ *   bowl:<WEIGHT>                            e.g. "bowl:150.0" (write bowl tare to NFC tag)
+ *   ota                                      triggers an immediate OTA check
  *
  * The broker URL is read from g_mqtt_broker (init.h), which is loaded from
  * NVS on boot (default from CONFIG_MQTT_BROKER_URL).
@@ -37,7 +37,7 @@ static void handle_command(const char *data, int data_len)
     buf[len] = '\0';
 
     logic_queue_item_t item = {0};
-    int grams, hour, minute;
+    int grams, hour, minute, slot;
     float bowl_w;
 
     if (sscanf(buf, "feed:%d", &grams) == 1) {
@@ -46,13 +46,18 @@ static void handle_command(const char *data, int data_len)
         ESP_LOGI(TAG, "CMD_FEED_NOW: %d g", grams);
         xQueueSend(logic_queue, &item, pdMS_TO_TICKS(500));
 
-    } else if (sscanf(buf, "schedule:%d:%d:%d", &hour, &minute, &grams) == 3) {
+    } else if (sscanf(buf, "schedule:%d:%d:%d:%d", &slot, &hour, &minute, &grams) == 4) {
+        if (slot < 0 || slot >= CONFIG_SCHED_MAX) {
+            slot = 0;
+        }
         item.type                  = CMD_UPDATE_SCHEDULE;
-        item.data.schedule.hour   = hour;
-        item.data.schedule.minute = minute;
-        item.data.schedule.grams  = grams;
-        ESP_LOGI(TAG, "CMD_UPDATE_SCHEDULE: %02d:%02d, %d g", hour, minute, grams);
+        item.data.schedule.slot    = slot;
+        item.data.schedule.hour    = hour;
+        item.data.schedule.minute  = minute;
+        item.data.schedule.grams   = grams;
+        ESP_LOGI(TAG, "CMD_UPDATE_SCHEDULE[%d]: %02d:%02d, %d g", slot, hour, minute, grams);
         xQueueSend(logic_queue, &item, pdMS_TO_TICKS(500));
+
 
     } else if (sscanf(buf, "bowl:%f", &bowl_w) == 1) {
         item.type             = CMD_WRITE_BOWL_TAG;

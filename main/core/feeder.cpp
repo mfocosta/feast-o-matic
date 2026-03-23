@@ -79,12 +79,17 @@ void feeder_task(void *pvParameter)
         }
 
         case CMD_UPDATE_SCHEDULE: {
-            g_sched_hour   = item.data.schedule.hour;
-            g_sched_minute = item.data.schedule.minute;
-            g_sched_grams  = item.data.schedule.grams;
+            int slot = item.data.schedule.slot;
+            if (slot < 0 || slot >= CONFIG_SCHED_MAX) {
+                ESP_LOGW(TAG, "Invalid schedule slot: %d", slot);
+                break;
+            }
+            g_sched[slot].hour   = item.data.schedule.hour;
+            g_sched[slot].minute = item.data.schedule.minute;
+            g_sched[slot].grams  = item.data.schedule.grams;
             nvs_save_settings();
-            ESP_LOGI(TAG, "Schedule updated: %02d:%02d, %d g",
-                     g_sched_hour, g_sched_minute, g_sched_grams);
+            ESP_LOGI(TAG, "Schedule[%d] updated: %02d:%02d, %d g",
+                     slot, g_sched[slot].hour, g_sched[slot].minute, g_sched[slot].grams);
             break;
         }
 

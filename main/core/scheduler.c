@@ -61,13 +61,15 @@ void scheduler_task(void *pvParameter)
 
     sntp_sync();
 
-    /* Track the last encoded minute that triggered a feed (avoids re-firing) */
-    int last_triggered = -1;
+    /* Track the last encoded minute that triggered a feed, per slot */
+    int last_triggered[CONFIG_SCHED_MAX];
+    for (int i = 0; i < CONFIG_SCHED_MAX; i++) last_triggered[i] = -1;
 
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(30000)); /* check every 30 s */
 
-        if (g_sched_hour < 0) continue; /* no schedule configured */
+        if (g_sched[0].hour < 0 && g_sched[1].hour < 0 &&
+            g_sched[2].hour < 0 && g_sched[3].hour < 0) continue; /* no schedule configured */
 
         /* Verify time is valid (NTP synced ≈ year > 2020) */
         time_t now;
@@ -81,28 +83,32 @@ void scheduler_task(void *pvParameter)
         }
 
         int current = t.tm_hour * 60 + t.tm_min;
-        int sched   = g_sched_hour * 60 + g_sched_minute;
 
-        if (current == sched && last_triggered != current) {
-            if (xEventGroupGetBits(system_event_group) & OTA_IN_PROGRESS_BIT) {
-                ESP_LOGW(TAG, "OTA in progress, deferring scheduled feed");
-                /* Don't set last_triggered so it retries on the next 30 s tick */
-                continue;
+        for (int i = 0; i < CONFIG_SCHED_MAX; i++) {
+            if (g_sched[i].hour < 0) continue; /* slot disabled */
+
+            int sched = g_sched[i].hour * 60 + g_sched[i].minute;
+
+            if (current == sched && last_triggered[i] != current) {
+                if (xEventGroupGetBits(system_event_group) & OTA_IN_PROGRESS_BIT) {
+                    ESP_LOGW(TAG, "OTA in progress, deferring scheduled feed");
+                    continue;
+                }
+
+                ESP_LOGI(TAG, "Scheduled feed [slot %d] at %02d:%02d (%d g)",
+                         i, g_sched[i].hour, g_sched[i].minute, g_sched[i].grams);
+                last_triggered[i] = current;
+
+                logic_queue_item_t item = {
+                    .type       = CMD_FEED_NOW,
+                    .data.grams = g_sched[i].grams,
+                };
+                xQueueSend(logic_queue, &item, pdMS_TO_TICKS(1000));
+
+            } else if (current != sched) {
+                /* Reset so the next occurrence can fire */
+                last_triggered[i] = -1;
             }
-
-            ESP_LOGI(TAG, "Scheduled feed at %02d:%02d (%d g)",
-                     g_sched_hour, g_sched_minute, g_sched_grams);
-            last_triggered = current;
-
-            logic_queue_item_t item = {
-                .type       = CMD_FEED_NOW,
-                .data.grams = g_sched_grams,
-            };
-            xQueueSend(logic_queue, &item, pdMS_TO_TICKS(1000));
-
-        } else if (current != sched) {
-            /* Reset so the next occurrence can fire */
-            last_triggered = -1;
         }
     }
 }

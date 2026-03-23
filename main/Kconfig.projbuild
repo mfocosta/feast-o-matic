@@ -59,4 +59,10 @@ menu "Feast-O-Matic Configuration"
             Weight of the bowl in grams. Used to compensate the scale
             reading when a bowl is present but its NFC tag cannot be read.
 
+    config SCHED_MAX
+        int "Maximum number of schedules"
+        default 4
+        help
+            Maximum number of schedules that can be configured.
+
 endmenu

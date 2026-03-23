@@ -20,9 +20,12 @@ EventGroupHandle_t system_event_group = NULL;
 SemaphoreHandle_t  i2c_mutex          = NULL;
 
 /* Persisted settings – defaults come from Kconfig */
-int16_t  g_sched_hour   = -1;
-int16_t  g_sched_minute = 0;
-int16_t  g_sched_grams  = 100;
+sched_entry_t g_sched[CONFIG_SCHED_MAX] = {
+    { -1, 0, 100 },
+    { -1, 0, 100 },
+    { -1, 0, 100 },
+    { -1, 0, 100 },
+};
 int16_t  g_cal_factor   = CONFIG_HX711_CALIBRATION_FACTOR;
 int32_t  g_raw_offset   = CONFIG_HX711_RAW_OFFSET;
 int16_t  g_bowl_g       = CONFIG_BOWL_WEIGHT_GRAMS;
@@ -36,9 +39,15 @@ void nvs_load_settings(void)
         return;
     }
     int32_t val;
-    if (nvs_get_i32(nvs, "sched_hour",   &val) == ESP_OK) g_sched_hour   = (int16_t)val;
-    if (nvs_get_i32(nvs, "sched_minute", &val) == ESP_OK) g_sched_minute = (int16_t)val;
-    if (nvs_get_i32(nvs, "sched_grams",  &val) == ESP_OK) g_sched_grams  = (int16_t)val;
+    char key[16];
+    for (int i = 0; i < CONFIG_SCHED_MAX; i++) {
+        snprintf(key, sizeof(key), "sch%d_h", i);
+        if (nvs_get_i32(nvs, key, &val) == ESP_OK) g_sched[i].hour   = (int16_t)val;
+        snprintf(key, sizeof(key), "sch%d_m", i);
+        if (nvs_get_i32(nvs, key, &val) == ESP_OK) g_sched[i].minute = (int16_t)val;
+        snprintf(key, sizeof(key), "sch%d_g", i);
+        if (nvs_get_i32(nvs, key, &val) == ESP_OK) g_sched[i].grams  = (int16_t)val;
+    }
     if (nvs_get_i32(nvs, "cal_factor",   &val) == ESP_OK) g_cal_factor   = (int16_t)val;
     if (nvs_get_i32(nvs, "raw_offset",   &val) == ESP_OK) g_raw_offset   = (int32_t)val;
     if (nvs_get_i32(nvs, "bowl_g",       &val) == ESP_OK) g_bowl_g       = (int16_t)val;
@@ -52,9 +61,15 @@ void nvs_save_settings(void)
 {
     nvs_handle_t nvs;
     ESP_ERROR_CHECK(nvs_open(NVS_NS, NVS_READWRITE, &nvs));
-    nvs_set_i32(nvs, "sched_hour",   (int32_t)g_sched_hour);
-    nvs_set_i32(nvs, "sched_minute", (int32_t)g_sched_minute);
-    nvs_set_i32(nvs, "sched_grams",  (int32_t)g_sched_grams);
+    char key[16];
+    for (int i = 0; i < CONFIG_SCHED_MAX; i++) {
+        snprintf(key, sizeof(key), "sch%d_h", i);
+        nvs_set_i32(nvs, key, (int32_t)g_sched[i].hour);
+        snprintf(key, sizeof(key), "sch%d_m", i);
+        nvs_set_i32(nvs, key, (int32_t)g_sched[i].minute);
+        snprintf(key, sizeof(key), "sch%d_g", i);
+        nvs_set_i32(nvs, key, (int32_t)g_sched[i].grams);
+    }
     nvs_set_i32(nvs, "cal_factor",   (int32_t)g_cal_factor);
     nvs_set_i32(nvs, "raw_offset",   (int32_t)g_raw_offset);
     nvs_set_i32(nvs, "bowl_g",       (int32_t)g_bowl_g);

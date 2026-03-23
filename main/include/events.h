@@ -44,10 +44,12 @@ typedef enum {
     CMD_WRITE_BOWL_TAG,
 } cmd_type_t;
 
+
 typedef struct {
-    int grams;
-    int hour;
+    int slot;   /* 0 … CONFIG_SCHED_MAX-1 */
+    int hour;   /* -1 = disable this slot */
     int minute;
+    int grams;
 } data_feed_schedule_t;
 
 /* Queue item – union avoids wasting space */
