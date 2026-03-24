@@ -62,18 +62,22 @@ void nvs_save_settings(void)
     nvs_handle_t nvs;
     ESP_ERROR_CHECK(nvs_open(NVS_NS, NVS_READWRITE, &nvs));
     char key[16];
+    bool ok = true;
     for (int i = 0; i < CONFIG_SCHED_MAX; i++) {
         snprintf(key, sizeof(key), "sch%d_h", i);
-        nvs_set_i32(nvs, key, (int32_t)g_sched[i].hour);
+        ok = ok && (nvs_set_i32(nvs, key, (int32_t)g_sched[i].hour)   == ESP_OK);
         snprintf(key, sizeof(key), "sch%d_m", i);
-        nvs_set_i32(nvs, key, (int32_t)g_sched[i].minute);
+        ok = ok && (nvs_set_i32(nvs, key, (int32_t)g_sched[i].minute) == ESP_OK);
         snprintf(key, sizeof(key), "sch%d_g", i);
-        nvs_set_i32(nvs, key, (int32_t)g_sched[i].grams);
+        ok = ok && (nvs_set_i32(nvs, key, (int32_t)g_sched[i].grams)  == ESP_OK);
     }
-    nvs_set_i32(nvs, "cal_factor",   (int32_t)g_cal_factor);
-    nvs_set_i32(nvs, "raw_offset",   (int32_t)g_raw_offset);
-    nvs_set_i32(nvs, "bowl_g",       (int32_t)g_bowl_g);
-    nvs_commit(nvs);
+    ok = ok && (nvs_set_i32(nvs, "cal_factor", (int32_t)g_cal_factor) == ESP_OK);
+    ok = ok && (nvs_set_i32(nvs, "raw_offset", (int32_t)g_raw_offset) == ESP_OK);
+    ok = ok && (nvs_set_i32(nvs, "bowl_g",     (int32_t)g_bowl_g)     == ESP_OK);
+    if (!ok) {
+        ESP_LOGE(TAG, "One or more NVS writes failed");
+    }
+    ESP_ERROR_CHECK(nvs_commit(nvs));
     nvs_close(nvs);
     ESP_LOGI(TAG, "Settings saved to NVS");
 }
@@ -82,11 +86,15 @@ void nvs_save_broker(const char *broker_url)
 {
     nvs_handle_t nvs;
     ESP_ERROR_CHECK(nvs_open(NVS_NS, NVS_READWRITE, &nvs));
-    nvs_set_str(nvs, "mqtt_broker", broker_url);
-    nvs_commit(nvs);
+    esp_err_t err = nvs_set_str(nvs, "mqtt_broker", broker_url);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "nvs_set mqtt_broker: %s", esp_err_to_name(err));
+    } else {
+        ESP_ERROR_CHECK(nvs_commit(nvs));
+        strlcpy(g_mqtt_broker, broker_url, sizeof(g_mqtt_broker));
+        ESP_LOGI(TAG, "MQTT broker saved: %s", broker_url);
+    }
     nvs_close(nvs);
-    strlcpy(g_mqtt_broker, broker_url, sizeof(g_mqtt_broker));
-    ESP_LOGI(TAG, "MQTT broker saved: %s", broker_url);
 }
 
 void initialize_system(void)
