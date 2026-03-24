@@ -173,6 +173,7 @@ static void dhcp_set_captiveportal_url(void) {
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_dhcps_stop(netif));
     ESP_ERROR_CHECK(esp_netif_dhcps_option(netif, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, captiveportal_uri, strlen(captiveportal_uri)));
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_dhcps_start(netif));
+    free(captiveportal_uri);
 }
 
 // HTTP GET Handler
@@ -194,9 +195,10 @@ static const httpd_uri_t root = {
 };
 
 // Helper function to URL decode
-static void url_decode(char *dst, const char *src) {
+static void url_decode(char *dst, const char *src, size_t max_len) {
     char a, b;
-    while (*src) {
+    size_t written = 0;
+    while (*src && written < max_len - 1) {
         if ((*src == '%') &&
             ((a = src[1]) && (b = src[2])) &&
             (isxdigit(a) && isxdigit(b))) {
@@ -213,15 +215,16 @@ static void url_decode(char *dst, const char *src) {
             else
                 b -= '0';
             *dst++ = 16*a+b;
-            src+=3;
+            src += 3;
         } else if (*src == '+') {
             *dst++ = ' ';
             src++;
         } else {
             *dst++ = *src++;
         }
+        written++;
     }
-    *dst++ = '\0';
+    *dst = '\0';
 }
 
 static esp_err_t connect_post_handler(httpd_req_t *req)
@@ -250,19 +253,19 @@ static esp_err_t connect_post_handler(httpd_req_t *req)
     if ((p = strstr(buf, "ssid="))) {
         p += 5;
         char *end = strchr(p, '&'); if (end) *end = '\0';
-        url_decode(ssid, p);
+        url_decode(ssid, p, sizeof(ssid));
         if (end) *end = '&';
     }
     if ((p = strstr(buf, "password="))) {
         p += 9;
         char *end = strchr(p, '&'); if (end) *end = '\0';
-        url_decode(password, p);
+        url_decode(password, p, sizeof(password));
         if (end) *end = '&';
     }
     if ((p = strstr(buf, "mqtt_broker="))) {
         p += 12;
         char *end = strchr(p, '&'); if (end) *end = '\0';
-        url_decode(broker, p);
+        url_decode(broker, p, sizeof(broker));
         if (end) *end = '&';
     }
 
