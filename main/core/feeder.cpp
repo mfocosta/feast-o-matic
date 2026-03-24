@@ -27,6 +27,8 @@ static const char *TAG = "feeder";
 #define DISPENSE_STEPS      256
 /* Safety cap: stop after this many cycles even if target not reached */
 #define MAX_DISPENSE_CYCLES  40
+/* Minimum time between consecutive feed events (guards against MQTT flooding) */
+#define MIN_FEED_INTERVAL_MS  (CONFIG_MIN_FEED_INTERVAL_MIN * 60 * 1000)
 
 void feeder_task(void *pvParameter)
 {
@@ -45,6 +47,17 @@ void feeder_task(void *pvParameter)
                 break;
             }
 
+            static TickType_t last_feed_ticks = 0;
+#if CONFIG_MIN_FEED_INTERVAL_MIN > 0
+            TickType_t now = xTaskGetTickCount();
+            if (last_feed_ticks != 0 &&
+                (now - last_feed_ticks) < pdMS_TO_TICKS(MIN_FEED_INTERVAL_MS)) {
+                ESP_LOGW(TAG, "Feed too soon, ignoring (min interval %d min)",
+                         CONFIG_MIN_FEED_INTERVAL_MIN);
+                break;
+            }
+#endif
+
             int target_grams = item.data.grams;
             ESP_LOGI(TAG, "Feed command: %d g", target_grams);
 
@@ -58,12 +71,14 @@ void feeder_task(void *pvParameter)
             while (weight < (float)target_grams && cycles < MAX_DISPENSE_CYCLES) {
                 stepper.step(-DISPENSE_STEPS);
                 vTaskDelay(pdMS_TO_TICKS(300)); /* let food settle before weighing */
+                xSemaphoreTake(i2c_mutex, portMAX_DELAY);
                 weight = scale.get_units();
+                xSemaphoreGive(i2c_mutex);
                 ESP_LOGI(TAG, "  cycle %d: %.1f / %d g", cycles + 1, weight, target_grams);
                 cycles++;
             }
 
-            //disableMotor();
+            disableMotor();
             gpio_set_level(LEDPIN, 0);
 
             if (cycles >= MAX_DISPENSE_CYCLES) {
@@ -74,7 +89,7 @@ void feeder_task(void *pvParameter)
 
             /* Update reservoir status */
             xEventGroupSetBits(system_event_group, RESERVOIR_UPDATE_BIT);
-
+            last_feed_ticks = xTaskGetTickCount();
             break;
         }
 

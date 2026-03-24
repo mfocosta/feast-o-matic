@@ -68,9 +68,6 @@ void scheduler_task(void *pvParameter)
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(30000)); /* check every 30 s */
 
-        if (g_sched[0].hour < 0 && g_sched[1].hour < 0 &&
-            g_sched[2].hour < 0 && g_sched[3].hour < 0) continue; /* no schedule configured */
-
         /* Verify time is valid (NTP synced ≈ year > 2020) */
         time_t now;
         struct tm t;

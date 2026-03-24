@@ -46,31 +46,34 @@ static void sensor_task(void *pvParameter)
     for (;;) {
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(2000));
 
-        xSemaphoreTake(i2c_mutex, portMAX_DELAY);
-
-        float temp   = dht.readTemperature();
-        float hum    = dht.readHumidity();
-        float weight = scale.get_units();
-
+        /* ── DHT11 (1-wire, no shared bus) ──────────────────────────── */
+        float temp = dht.readTemperature();
+        float hum  = dht.readHumidity();
         if (!isnan(temp) && !isnan(hum)) {
             temperatura = temp;
             humidade    = hum;
         }
 
-        /* Publish temperature */
+        /* ── HX711 scale (GPIO bit-bang) ────────────────────────────── */
+        xSemaphoreTake(i2c_mutex, portMAX_DELAY);
+        float weight = scale.get_units();
+        xSemaphoreGive(i2c_mutex);
+
+        /* ── Publish temperature (MQTT API is thread-safe) ───────────── */
         if (mqtt_client != NULL) {
             char buf[32];
             snprintf(buf, sizeof(buf), "%.1f", temperatura);
             esp_mqtt_client_publish(mqtt_client, "feeder/temp", buf, 0, 0, 0);
         }
 
+        /* ── VL53L1X ToF (I2C) ───────────────────────────────────────── */
         int16_t distance = -1;
+        xSemaphoreTake(i2c_mutex, portMAX_DELAY);
+        bool tof_ok = vl53_read(&distance);
+        xSemaphoreGive(i2c_mutex);
 
-        if (vl53_read(&distance)) {
+        if (tof_ok) {
             ESP_LOGI(SENSOR_TAG, "Distance: %d mm", distance);
-            //char buf[32];
-            //snprintf(buf, sizeof(buf), "%d", distance);
-            //esp_mqtt_client_publish(mqtt_client, "feeder/distance", buf, 0, 0, 0);
         }
 
         if ((distance != -1) && (xEventGroupGetBits(system_event_group) & RESERVOIR_UPDATE_BIT)) {
@@ -81,14 +84,17 @@ static void sensor_task(void *pvParameter)
             fill_pct = -1; /* lid open */
         }
 
-        /* Update display */
+        /* ── Display update (queue send, no hardware) ────────────────── */
         display_post_status(weight, temperatura, humidade, fill_pct);
 
-        /* ── NFC bowl detection ──────────────────────────────────── */
+        /* ── NFC bowl detection (I2C + HX711 offset update) ─────────── */
         uint8_t uid[7];
         uint8_t uidLen = 0;
 
-        if (nfc_poll_uid(uid, &uidLen)) {
+        xSemaphoreTake(i2c_mutex, portMAX_DELAY);
+        bool nfc_seen = nfc_poll_uid(uid, &uidLen);
+
+        if (nfc_seen) {
             nfc_miss_count = 0;
 
             /* New bowl? (different UID from last) */
@@ -121,7 +127,6 @@ static void sensor_task(void *pvParameter)
                 }
             }
         }
-
         xSemaphoreGive(i2c_mutex);
     }
 }
