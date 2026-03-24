@@ -48,7 +48,8 @@ static void handle_command(const char *data, int data_len)
 
     } else if (sscanf(buf, "schedule:%d:%d:%d:%d", &slot, &hour, &minute, &grams) == 4) {
         if (slot < 0 || slot >= CONFIG_SCHED_MAX) {
-            slot = 0;
+            ESP_LOGW(TAG, "Invalid slot %d, command ignored: %s", slot, buf);
+            return;
         }
         item.type                  = CMD_UPDATE_SCHEDULE;
         item.data.schedule.slot    = slot;

@@ -8,13 +8,6 @@
 extern "C" {
 #endif
 
-/* Physical calibration points ------------------------------------------------
- * TOF_FULL_MM  : sensor reading when the container is completely full  (0 mm)
- * TOF_EMPTY_MM : sensor reading when the container is completely empty (100 mm)
- * --------------------------------------------------------------------------- */
-#define TOF_FULL_MM   0
-#define TOF_EMPTY_MM  100
-
 extern Adafruit_VL53L1X vl53;
 
 void vl53_init(void);
@@ -31,7 +24,7 @@ bool vl53_read(int16_t *distance_mm);
 static inline int tof_fill_percent(int16_t distance_mm)
 {
     /* Invert: closer to sensor = fuller */
-    int pct = 100 * (TOF_EMPTY_MM - distance_mm) / (TOF_EMPTY_MM - TOF_FULL_MM);
+    int pct = 100 * (CONFIG_TOF_EMPTY_MM - distance_mm) / (CONFIG_TOF_EMPTY_MM - CONFIG_TOF_FULL_MM);
 
     /* Clamp */
     if (pct < 0)   pct = 0;

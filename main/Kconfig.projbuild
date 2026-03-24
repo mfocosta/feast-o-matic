@@ -65,4 +65,26 @@ menu "Feast-O-Matic Configuration"
         help
             Maximum number of schedules that can be configured.
 
+    config TOF_FULL_MM
+        int "ToF distance when reservoir is full (mm)"
+        default 0
+        help
+            Distance reading (mm) from the VL53L1X sensor with the lid closed
+            and the reservoir completely full. Measure on real hardware.
+
+    config TOF_EMPTY_MM
+        int "ToF distance when reservoir is empty (mm)"
+        default 100
+        help
+            Distance reading (mm) from the VL53L1X sensor with the lid closed
+            and the reservoir completely empty. Measure on real hardware.
+
+    config MIN_FEED_INTERVAL_MIN
+        int "Minimum interval between feed events (minutes)"
+        default 5
+        help
+            Minimum time that must elapse between two consecutive feed events.
+            Prevents MQTT command flooding from dispensing food continuously.
+            Set to 0 to disable the guard.
+
 endmenu
