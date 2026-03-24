@@ -1,6 +1,6 @@
 idf_component_register(SRCS "main.cpp"
                             "core/init.c" "core/wifi.c" "core/feeder.cpp" "core/scheduler.c"
-                            "hardware/dht_handler.cpp" "hardware/display.cpp" "hardware/motor.cpp" "hardware/scale.cpp" "hardware/tof.cpp"
+                            "hardware/dht_handler.cpp" "hardware/display.cpp" "hardware/motor.cpp" "hardware/nfc.cpp" "hardware/scale.cpp" "hardware/tof.cpp"
                             "mqtt/mqtt.c"
                             "ota/ota.c"
                             "ui/bitmaps.cpp"

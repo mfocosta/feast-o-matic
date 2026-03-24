@@ -1,4 +1,7 @@
 #include <HX711.h>
+#include "pins.h"
+#include "init.h"
+#include "scale.h"
 
 HX711 scale;
 
