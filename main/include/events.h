@@ -21,18 +21,25 @@ extern SemaphoreHandle_t  i2c_mutex;
 
 /* ── Display message queue types ─────────────────────────────────────── */
 typedef enum {
-    DISPLAY_MSG_STATUS,     /* idle screen: weight + temp + humidity   */
-    DISPLAY_MSG_DISPENSING, /* feeding in progress: target grams       */
-    DISPLAY_MSG_ERROR,      /* error string                            */
-    DISPLAY_MSG_STARTUP,    /* "Sistema Iniciado" splash               */
-    DISPLAY_MSG_LOGO,       /* feast logo bitmap                       */
+    DISPLAY_MSG_STATUS,           /* idle screen: weight + temp + humidity   */
+    DISPLAY_MSG_DISPENSING,       /* feeding in progress: target grams       */
+    DISPLAY_MSG_DISPENSING_DONE,  /* feeding finished – restore previous page*/
+    DISPLAY_MSG_ERROR,            /* error string                            */
+    DISPLAY_MSG_STARTUP,          /* "Sistema Iniciado" splash               */
+    DISPLAY_MSG_LOGO,             /* feast logo bitmap                       */
+    DISPLAY_MSG_NAV,              /* button navigation event                 */
+    DISPLAY_MSG_OTA_PROGRESS,     /* OTA download progress (0-100 %)         */
+    DISPLAY_MSG_SCHEDULE_HINT,    /* next scheduled feeding info             */
 } display_msg_type_t;
 
 typedef struct {
     display_msg_type_t type;
     union {
-        struct { float weight; float temp; float hum; int fill_pct; } status;
-        struct { int   grams;                         } dispensing;
+        struct { float weight; float temp; float hum; int fill_pct;  } status;
+        struct { int   grams;                                        } dispensing;
+        struct { int8_t dir; bool confirm;                           } nav;
+        struct { int   pct;                                          } ota;
+        struct { int   hour; int minute; int grams;                  } schedule_hint;
         char error[64];
     } data;
 } display_msg_t;

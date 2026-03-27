@@ -87,4 +87,18 @@ menu "Feast-O-Matic Configuration"
             Prevents MQTT command flooding from dispensing food continuously.
             Set to 0 to disable the guard.
 
+    config LONG_PRESS_MS
+        int "Long press duration (ms)"
+        default 1000
+        help
+            Duration (in milliseconds) that a button must be pressed to be considered a long press.
+            type unsigned
+
+    config DEBOUNCE_MS
+        int "Debounce duration (ms)"
+        default 50
+        help
+            Duration (in milliseconds) that a button must be pressed to be considered as a valid press.
+            type unsigned            
+
 endmenu

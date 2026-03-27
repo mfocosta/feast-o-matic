@@ -14,6 +14,7 @@
 #include "ota.h"
 #include "mqtt.h"
 #include "display.h"
+#include "button.h"
 #include "dht_handler.h"
 #include "scale.h"
 #include "motor.h"
@@ -147,7 +148,7 @@ static void configure_pins(void)
         .mode         = GPIO_MODE_INPUT,
         .pull_up_en   = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type    = GPIO_INTR_NEGEDGE,
+        .intr_type    = GPIO_INTR_ANYEDGE,
     };
     gpio_config(&io_conf_input);
 }
@@ -168,6 +169,7 @@ extern "C" void app_main(void)
 
     /* 5. GPIO */
     configure_pins();
+    button_init();
 
     /* 6. Peripherals */
     Serial.begin(115200);
@@ -175,10 +177,11 @@ extern "C" void app_main(void)
     ESP_LOGI(MAIN_TAG, "Init done. Launching tasks...");
 
     /* 7. FreeRTOS tasks
-     *   Priority: feeder (6) > display (5) > sensor (3) > scheduler (2) > ota (1)
+     *   Priority: feeder (6) > display (5) > button (4) > sensor (3) > scheduler (2) > ota (1)
      */
     xTaskCreate(feeder_task,    "feeder",    4096,  NULL, tskIDLE_PRIORITY + 6, NULL);
     xTaskCreate(display_task,   "display",   4096,  NULL, tskIDLE_PRIORITY + 5, NULL);
+    xTaskCreate(button_task,    "button",    2048,  NULL, tskIDLE_PRIORITY + 4, NULL);
     xTaskCreate(sensor_task,    "sensor",    4096,  NULL, tskIDLE_PRIORITY + 3, NULL);
     xTaskCreate(scheduler_task, "scheduler", 4096,  NULL, tskIDLE_PRIORITY + 2, NULL);
     xTaskCreate(ota_task,       "ota",       12288, NULL, tskIDLE_PRIORITY + 1, NULL);

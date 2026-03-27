@@ -16,6 +16,7 @@
 /* Include certificate bundle to verify GitHub HTTPS server */
 #include "esp_crt_bundle.h"
 #include "events.h"
+#include "display.h"
 
 #include <sys/socket.h>
 #include <inttypes.h>
@@ -140,12 +141,19 @@ void ota_task(void *pvParameter)
 
         // Signal all tasks that OTA flash write is starting
         xEventGroupSetBits(system_event_group, OTA_IN_PROGRESS_BIT);
+        display_post_ota_progress(0);
 
         // Perform the OTA download and write
+        int ota_size = esp_https_ota_get_image_size(https_ota_handle);
         while (1) {
             ret = esp_https_ota_perform(https_ota_handle);
             if (ret != ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
                 break;
+            }
+            if (ota_size > 0) {
+                int downloaded = esp_https_ota_get_image_len_read(https_ota_handle);
+                int pct = (int)(100 * downloaded / ota_size);
+                display_post_ota_progress(pct);
             }
         }
 
@@ -153,16 +161,19 @@ void ota_task(void *pvParameter)
             ret = esp_https_ota_finish(https_ota_handle);
             if (ret == ESP_OK) {
                 ESP_LOGI(TAG, "OTA Succeeded, Rebooting...");
+                display_post_ota_progress(100);
                 xEventGroupClearBits(system_event_group, OTA_IN_PROGRESS_BIT);
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 esp_restart();
             } else {
                 ESP_LOGE(TAG, "esp_https_ota_finish failed: %s", esp_err_to_name(ret));
+                display_post_error("OTA finish failed");
                 xEventGroupClearBits(system_event_group, OTA_IN_PROGRESS_BIT);
             }
         } else {
             ESP_LOGE(TAG, "Firmware upgrade failed: %s", esp_err_to_name(ret));
             esp_https_ota_abort(https_ota_handle);
+            display_post_error("OTA download failed");
             xEventGroupClearBits(system_event_group, OTA_IN_PROGRESS_BIT);
         }
     }

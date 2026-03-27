@@ -80,6 +80,7 @@ void feeder_task(void *pvParameter)
 
             disableMotor();
             gpio_set_level(LEDPIN, 0);
+            display_post_dispensing_done();
 
             if (cycles >= MAX_DISPENSE_CYCLES) {
                 ESP_LOGW(TAG, "Safety cap reached. Final weight: %.1f g", weight);
