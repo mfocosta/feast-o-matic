@@ -9,12 +9,12 @@ extern "C" {
 #define LEDPIN  GPIO_NUM_5
 
 /* MENU BUTTONS */
-#define BTN_NEXT  GPIO_NUM_1
-#define BTN_PREV  GPIO_NUM_3
+#define BTN_UP    GPIO_NUM_19
+#define BTN_DOWN  GPIO_NUM_18
 
 #define GPIO_OUTPUT_PIN_SEL  (1ULL<<LEDPIN)
 
-#define GPIO_INPUT_PIN_SEL   ((1ULL<<BTN_NEXT) | (1ULL<<BTN_PREV))
+#define GPIO_INPUT_PIN_SEL   ((1ULL<<BTN_UP) | (1ULL<<BTN_DOWN))
 
 /* 
  * Initialized by the respective drivers/libraries

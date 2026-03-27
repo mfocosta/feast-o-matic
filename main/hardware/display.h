@@ -1,7 +1,6 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include <Adafruit_SSD1306.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "events.h"
@@ -9,8 +8,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern Adafruit_SSD1306 display;
 
 /* Initialise hardware */
 void display_init(void);

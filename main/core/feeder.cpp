@@ -24,7 +24,8 @@
 static const char *TAG = "feeder";
 
 /* Steps dispensed per auger cycle – tune for your specific auger */
-#define DISPENSE_STEPS      256
+#define DISPENSE_STEPS          -512
+#define DISPENSE_STEPS_REVERSE   100
 /* Safety cap: stop after this many cycles even if target not reached */
 #define MAX_DISPENSE_CYCLES  40
 /* Minimum time between consecutive feed events (guards against MQTT flooding) */
@@ -69,7 +70,8 @@ void feeder_task(void *pvParameter)
             float weight = 0.0f;
             int cycles = 0;
             while (weight < (float)target_grams && cycles < MAX_DISPENSE_CYCLES) {
-                stepper.step(-DISPENSE_STEPS);
+                stepper.step(DISPENSE_STEPS);
+                stepper.step(DISPENSE_STEPS_REVERSE); /* helps prevent jamming */
                 vTaskDelay(pdMS_TO_TICKS(300)); /* let food settle before weighing */
                 xSemaphoreTake(i2c_mutex, portMAX_DELAY);
                 weight = scale.get_units();

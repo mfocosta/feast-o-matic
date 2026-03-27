@@ -1,4 +1,4 @@
-/* button.c – Short/long press detection for BTN_NEXT and BTN_PREV
+/* button.c – Short/long press detection for BTN_UP and BTN_DOWN
  *
  * ISR fires on any edge (press = falling, release = rising).
  * Raw events are posted to a small button_event_queue.
@@ -7,10 +7,10 @@
  * logic_queue on a long NEXT press from the Manual Feed page).
  *
  * Button semantics
- *   BTN_NEXT  short  → next page
- *   BTN_NEXT  long   → confirm action (trigger manual feed)
- *   BTN_PREV  short  → previous page
- *   BTN_PREV  long   → return to HOME from any page
+ *   BTN_UP  short  → next page
+ *   BTN_UP  long   → confirm action (trigger manual feed)
+ *   BTN_DOWN  short  → previous page
+ *   BTN_DOWN  long   → return to HOME from any page
  */
 
 #include "freertos/FreeRTOS.h"
@@ -56,10 +56,10 @@ void button_init(void)
     s_btn_queue = xQueueCreate(8, sizeof(btn_raw_event_t));
 
     gpio_install_isr_service(0);
-    gpio_isr_handler_add(BTN_NEXT, button_isr_handler, (void *)(uintptr_t)BTN_NEXT);
-    gpio_isr_handler_add(BTN_PREV, button_isr_handler, (void *)(uintptr_t)BTN_PREV);
+    gpio_isr_handler_add(BTN_UP, button_isr_handler, (void *)(uintptr_t)BTN_UP);
+    gpio_isr_handler_add(BTN_DOWN, button_isr_handler, (void *)(uintptr_t)BTN_DOWN);
 
-    ESP_LOGI(TAG, "Button ISRs installed (NEXT=GPIO%d, PREV=GPIO%d)", BTN_NEXT, BTN_PREV);
+    ESP_LOGI(TAG, "Button ISRs installed (NEXT=GPIO%d, PREV=GPIO%d)", BTN_UP, BTN_DOWN);
 }
 
 /* ── Task ────────────────────────────────────────────────────────────── */
@@ -75,7 +75,7 @@ void button_task(void *pvParameter)
     for (;;) {
         if (xQueueReceive(s_btn_queue, &ev, portMAX_DELAY) != pdTRUE) continue;
 
-        int idx = (ev.gpio == BTN_NEXT) ? 0 : 1;
+        int idx = (ev.gpio == BTN_UP) ? 0 : 1;
 
         if (ev.pressed) {
             /* Falling edge – button pressed down */
@@ -94,11 +94,11 @@ void button_task(void *pvParameter)
 
             bool long_press = (duration_ms >= CONFIG_LONG_PRESS_MS);
 
-            ESP_LOGD(TAG, "GPIO%d released after %"PRIu32" ms (%s)",
+            ESP_LOGI(TAG, "GPIO%d released after %"PRIu32" ms (%s)",
                      ev.gpio, duration_ms, long_press ? "LONG" : "short");
 
             if (idx == 0) {
-                /* BTN_NEXT */
+                /* BTN_UP */
                 if (long_press) {
                     /* Long NEXT = confirm action on current page */
                     display_post_nav(0, true);
@@ -107,7 +107,7 @@ void button_task(void *pvParameter)
                     display_post_nav(+1, false);
                 }
             } else {
-                /* BTN_PREV */
+                /* BTN_DOWN */
                 if (long_press) {
                     /* Long PREV = return to HOME */
                     display_post_nav(0, false);
