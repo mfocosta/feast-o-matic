@@ -141,7 +141,7 @@ void ota_task(void *pvParameter)
 
         // Signal all tasks that OTA flash write is starting
         xEventGroupSetBits(system_event_group, OTA_IN_PROGRESS_BIT);
-        display_post_ota_progress(0);
+        display_post_ota_progress(0, running_app_info.version, new_app_info.version);
 
         // Perform the OTA download and write
         int ota_size = esp_https_ota_get_image_size(https_ota_handle);
@@ -153,7 +153,7 @@ void ota_task(void *pvParameter)
             if (ota_size > 0) {
                 int downloaded = esp_https_ota_get_image_len_read(https_ota_handle);
                 int pct = (int)(100 * downloaded / ota_size);
-                display_post_ota_progress(pct);
+                display_post_ota_progress(pct, running_app_info.version, new_app_info.version);
             }
         }
 
@@ -161,7 +161,7 @@ void ota_task(void *pvParameter)
             ret = esp_https_ota_finish(https_ota_handle);
             if (ret == ESP_OK) {
                 ESP_LOGI(TAG, "OTA Succeeded, Rebooting...");
-                display_post_ota_progress(100);
+                display_post_ota_progress(100, running_app_info.version, new_app_info.version);
                 xEventGroupClearBits(system_event_group, OTA_IN_PROGRESS_BIT);
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 esp_restart();

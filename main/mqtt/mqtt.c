@@ -7,6 +7,7 @@
  *   schedule:<SLOT>:<HOUR>:<MINUTE>:<GRAMS>  e.g. "schedule:0:8:0:100"
  *   bowl:<WEIGHT>                            e.g. "bowl:150.0" (write bowl tare to NFC tag)
  *   ota                                      triggers an immediate OTA check
+ *   wifi_reset                               resets WiFi config and starts provisioning portal
  *
  * The broker URL is read from g_mqtt_broker (init.h), which is loaded from
  * NVS on boot (default from CONFIG_MQTT_BROKER_URL).
@@ -18,9 +19,12 @@
 #include <string.h>
 #include "esp_log.h"
 #include "mqtt_client.h"
+#include "esp_tls.h"
 #include "events.h"
 #include "init.h"
 #include "ota.h"
+#include "wifi.h"
+#include "esp_crt_bundle.h"
 
 static const char *TAG = "mqtt";
 
@@ -70,6 +74,10 @@ static void handle_command(const char *data, int data_len)
         ESP_LOGI(TAG, "CMD_OTA_CHECK");
         ota_trigger_check();
 
+    } else if (strcmp(buf, "wifi_reset") == 0) {
+        ESP_LOGI(TAG, "CMD_WIFI_RESET");
+        reset_wifi_config_and_start_portal();
+
     } else {
         ESP_LOGW(TAG, "Unknown command: %s", buf);
     }
@@ -112,6 +120,7 @@ void mqtt_app_start(void)
     const esp_mqtt_client_config_t cfg = {
         .broker = {
             .address.uri = g_mqtt_broker,
+            .verification.crt_bundle_attach = esp_crt_bundle_attach,
         },
     };
     mqtt_client = esp_mqtt_client_init(&cfg);

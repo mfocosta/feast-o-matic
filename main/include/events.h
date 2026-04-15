@@ -38,7 +38,7 @@ typedef struct {
         struct { float weight; float temp; float hum; int fill_pct;  } status;
         struct { int   grams;                                        } dispensing;
         struct { int8_t dir; bool confirm;                           } nav;
-        struct { int   pct;                                          } ota;
+        struct { int   pct; char old_ver[32]; char new_ver[32];      } ota;
         struct { int   hour; int minute; int grams;                  } schedule_hint;
         char error[64];
     } data;

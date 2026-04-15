@@ -77,12 +77,10 @@ static void sensor_task(void *pvParameter)
             ESP_LOGI(SENSOR_TAG, "Distance: %d mm", distance);
         }
 
-        if ((distance != -1) && (xEventGroupGetBits(system_event_group) & RESERVOIR_UPDATE_BIT)) {
-            xEventGroupClearBits(system_event_group, RESERVOIR_UPDATE_BIT);
+        //if ((distance != -1) && (xEventGroupGetBits(system_event_group) & RESERVOIR_UPDATE_BIT)) {
+        if (distance != -1) {
+            //xEventGroupClearBits(system_event_group, RESERVOIR_UPDATE_BIT);
             fill_pct = tof_fill_percent(distance);
-        }
-        else if (distance == -1) {
-            fill_pct = -1; /* lid open */
         }
 
         /* ── Display update (queue send, no hardware) ────────────────── */

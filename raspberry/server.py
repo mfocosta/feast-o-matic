@@ -6,8 +6,8 @@ import paho.mqtt.client as mqtt
 # --- Configurações ---
 MQTT_BROKER = "localhost"  # ou o IP do broker se não for o mesmo
 MQTT_PORT = 1883
-TOPICO_TESTE = "test"
-TOPICO_TESTE2 = "test2"
+TOPICO_TEMP = "feeder/temp"
+TOPICO_FEED = "feeder/command"
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'segredo_super_secreto'
@@ -18,7 +18,7 @@ mqtt_client = mqtt.Client()
 def on_connect(client, userdata, flags, rc):
     print(f"Conectado ao MQTT com código: {rc}")
     # Subscreve para ouvir o que o ESP32 diz
-    client.subscribe(TOPICO_TESTE)
+    client.subscribe(TOPICO_TEMP)
 
 def on_message(client, userdata, msg):
     try:
@@ -45,10 +45,14 @@ def index():
 @socketio.on('comando_alimentar')
 def handle_feed_command(json_data):
     print("Comando recebido da Web: Alimentar")
-    # Publica no MQTT para o ESP32 ouvir
-    # Enviamos um JSON, ex: {"acao": "alimentar"}
-    mensagem = json.dumps(json_data)
-    mqtt_client.publish(TOPICO_TESTE2, mensagem)
+    grams = json_data.get("grams", 100)
+    mensagem = f"feed:{grams}"
+    mqtt_client.publish(TOPICO_FEED, mensagem)
+
+@socketio.on('comando_ota')
+def handle_ota_command():
+    print("Comando recebido da Web: OTA")
+    mqtt_client.publish(TOPICO_FEED, "ota")
 
 if __name__ == '__main__':
     # host='0.0.0.0' permite acesso de outros PCs na rede

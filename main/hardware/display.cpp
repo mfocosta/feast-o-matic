@@ -1,4 +1,5 @@
 #include <Adafruit_SSD1306.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/event_groups.h"
@@ -6,6 +7,7 @@
 #include "esp_app_desc.h"
 #include "display.h"
 #include "events.h"
+#include "wifi.h"
 #include <bitmaps.h>
 
 static const char *TAG = "display_handler";
@@ -182,9 +184,13 @@ static void draw_info_page(void)
     const esp_app_desc_t *desc = esp_app_get_description();
     display.print("FW:"); display.println(desc->version);
 
+    display.setCursor(0, 38);
+    display.print("[HOLD>] Reset WiFi");
+
     display.drawFastHLine(0, 52, 128, SSD1306_WHITE);
     display.setCursor(0, 55); display.print("<");
     display.setCursor(119, 55); display.print(">");
+    display.setCursor(40, 55); display.print("[HOLD>]");
     display.display();
 }
 
@@ -207,18 +213,22 @@ static void draw_dispensing(int grams)
 
 /* ── OVERLAY_OTA ────────────────────────────────────────────────────── */
 
-static void draw_ota_progress(int pct)
+static void draw_ota_progress(int pct, const char *old_ver, const char *new_ver)
 {
     display.clearDisplay();
     draw_top_bar("Actualizando FW");
 
+    display.setTextSize(1);
+    display.setCursor(0, 15);
+    display.print(old_ver); display.print(" -> "); display.print(new_ver);
+
     /* Progress bar */
-    display.drawRect(4, 24, 120, 12, SSD1306_WHITE);
+    display.drawRect(4, 30, 120, 12, SSD1306_WHITE);
     int filled = (int)(120 * pct / 100);
-    if (filled > 0) display.fillRect(4, 24, filled, 12, SSD1306_WHITE);
+    if (filled > 0) display.fillRect(4, 30, filled, 12, SSD1306_WHITE);
 
     display.setTextSize(1);
-    display.setCursor(52, 40);
+    display.setCursor(52, 46);
     display.print(pct); display.print("%");
     display.display();
 }
@@ -368,6 +378,9 @@ void display_task(void *pvParameter)
                     logic_queue_item_t cmd = { .type = CMD_FEED_NOW };
                     cmd.data.grams = s_sched_grams > 0 ? s_sched_grams : 50;
                     xQueueSend(logic_queue, &cmd, 0);
+                } else if (s_page == PAGE_INFO) {
+                    reset_wifi_config_and_start_portal();
+                    draw_info_page();
                 }
             } else if (dir == 0) {
                 /* Long PREV: go to HOME */
@@ -407,7 +420,7 @@ void display_task(void *pvParameter)
                 if (s_overlay == OVERLAY_NONE) s_saved_page = s_page;
                 s_overlay = OVERLAY_OTA;
             }
-            draw_ota_progress(msg.data.ota.pct);
+            draw_ota_progress(msg.data.ota.pct, msg.data.ota.old_ver, msg.data.ota.new_ver);
             break;
 
         /* ── Error (any task) ───────────────────────────────────────── */
@@ -463,10 +476,14 @@ void display_post_error(const char *message)
     xQueueSendToFront(display_queue, &msg, 0);
 }
 
-void display_post_ota_progress(int pct)
+void display_post_ota_progress(int pct, const char *old_ver, const char *new_ver)
 {
     display_msg_t msg = { .type = DISPLAY_MSG_OTA_PROGRESS };
     msg.data.ota.pct = pct;
+    strncpy(msg.data.ota.old_ver, old_ver ? old_ver : "", sizeof(msg.data.ota.old_ver) - 1);
+    msg.data.ota.old_ver[sizeof(msg.data.ota.old_ver) - 1] = '\0';
+    strncpy(msg.data.ota.new_ver, new_ver ? new_ver : "", sizeof(msg.data.ota.new_ver) - 1);
+    msg.data.ota.new_ver[sizeof(msg.data.ota.new_ver) - 1] = '\0';
     xQueueSend(display_queue, &msg, 0);
 }
 

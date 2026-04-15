@@ -31,13 +31,14 @@ static bool vl53_try_init(void) {
     }
 
 
-    /* Update reservoir status on lid closure OR init */
-    xEventGroupSetBits(system_event_group, RESERVOIR_UPDATE_BIT);
+
     return true;
 }
 
 void vl53_init(void) {
     vl53_present = vl53_try_init();
+    /* Update reservoir status on init */
+    xEventGroupSetBits(system_event_group, RESERVOIR_UPDATE_BIT);
 }
 
 /**
